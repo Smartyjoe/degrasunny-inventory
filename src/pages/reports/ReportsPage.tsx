@@ -1,6 +1,9 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useSales } from '@/hooks/useSales'
 import { useProducts } from '@/hooks/useProducts'
+import { reportService } from '@/services/reportService'
+import { ProductPerformance } from '@/types'
+import toast from 'react-hot-toast'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Input from '@/components/ui/Input'
@@ -37,6 +40,26 @@ const ReportsPage = () => {
 
   const { data: sales, isLoading: salesLoading } = useSales({ startDate, endDate })
   const { data: products } = useProducts({ isActive: true })
+  const [productPerformanceData, setProductPerformanceData] = useState<ProductPerformance[]>([])
+  const [isLoadingPerformance, setIsLoadingPerformance] = useState(false)
+
+  // Fetch product performance from backend
+  useEffect(() => {
+    const fetchProductPerformance = async () => {
+      setIsLoadingPerformance(true)
+      try {
+        const data = await reportService.getProductPerformance({ startDate, endDate })
+        setProductPerformanceData(data)
+      } catch (error) {
+        console.error('Failed to load product performance:', error)
+        toast.error('Failed to load product performance')
+      } finally {
+        setIsLoadingPerformance(false)
+      }
+    }
+
+    fetchProductPerformance()
+  }, [startDate, endDate])
 
   const reportData = useMemo(() => {
     if (!sales || !products) return null
@@ -62,27 +85,14 @@ const ReportsPage = () => {
       new Date(a.date).getTime() - new Date(b.date).getTime()
     )
 
-    // Product performance
-    const productPerformance = sales.reduce((acc, sale) => {
-      if (!acc[sale.productId]) {
-        acc[sale.productId] = {
-          productName: sale.productName,
-          totalSales: 0,
-          totalProfit: 0,
-          quantity: 0,
-          count: 0,
-        }
-      }
-      acc[sale.productId].totalSales += sale.totalAmount
-      acc[sale.productId].totalProfit += sale.profit
-      acc[sale.productId].quantity += sale.quantity
-      acc[sale.productId].count += 1
-      return acc
-    }, {} as Record<string, { productName: string; totalSales: number; totalProfit: number; quantity: number; count: number }>)
-
-    const topProducts = Object.values(productPerformance)
-      .sort((a, b) => b.totalSales - a.totalSales)
-      .slice(0, 5)
+    // Top products from backend API (use first 5)
+    const topProducts = productPerformanceData.slice(0, 5).map(p => ({
+      productName: p.productName,
+      totalSales: p.totalSales,
+      totalProfit: p.totalProfit,
+      quantity: p.quantitySold,
+      count: p.salesCount,
+    }))
 
     // Unit distribution
     const unitDistribution = sales.reduce((acc, sale) => {
@@ -101,8 +111,9 @@ const ReportsPage = () => {
       chartData,
       topProducts,
       unitDistribution: Object.values(unitDistribution),
+      allProductPerformance: productPerformanceData,
     }
-  }, [sales, products])
+  }, [sales, products, productPerformanceData])
 
   const handleExportCSV = () => {
     if (!sales) return
@@ -131,7 +142,7 @@ const ReportsPage = () => {
     a.click()
   }
 
-  if (salesLoading) {
+  if (salesLoading || isLoadingPerformance) {
     return <Loading message="Loading reports..." />
   }
 
@@ -327,10 +338,10 @@ const ReportsPage = () => {
               </Card>
             )}
 
-            {/* Product Performance Table */}
+            {/* Product Performance Table - Full List from Backend */}
             <Card>
               <CardHeader>
-                <CardTitle>Product Performance</CardTitle>
+                <CardTitle>Product Performance (All Products)</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="overflow-x-auto">
@@ -338,24 +349,40 @@ const ReportsPage = () => {
                     <thead>
                       <tr className="border-b border-gray-200">
                         <th className="text-left py-2 px-2 font-semibold text-gray-700">Product</th>
+                        <th className="text-right py-2 px-2 font-semibold text-gray-700">Qty Sold</th>
                         <th className="text-right py-2 px-2 font-semibold text-gray-700">Sales</th>
                         <th className="text-right py-2 px-2 font-semibold text-gray-700">Profit</th>
+                        <th className="text-right py-2 px-2 font-semibold text-gray-700">Txns</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {reportData.topProducts.map((product, index) => (
-                        <tr key={index} className="border-b border-gray-100">
-                          <td className="py-3 px-2 font-medium text-gray-900">
-                            {product.productName}
-                          </td>
-                          <td className="py-3 px-2 text-right text-gray-900">
-                            {formatCurrency(product.totalSales)}
-                          </td>
-                          <td className="py-3 px-2 text-right text-success-600 font-semibold">
-                            {formatCurrency(product.totalProfit)}
+                      {reportData.allProductPerformance.length > 0 ? (
+                        reportData.allProductPerformance.map((product, index) => (
+                          <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-3 px-2 font-medium text-gray-900">
+                              {product.productName}
+                            </td>
+                            <td className="py-3 px-2 text-right text-gray-700">
+                              {product.quantitySold}
+                            </td>
+                            <td className="py-3 px-2 text-right text-gray-900">
+                              {formatCurrency(product.totalSales)}
+                            </td>
+                            <td className="py-3 px-2 text-right text-success-600 font-semibold">
+                              {formatCurrency(product.totalProfit)}
+                            </td>
+                            <td className="py-3 px-2 text-right text-gray-600">
+                              {product.salesCount}
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={5} className="py-4 text-center text-gray-500">
+                            No sales data for selected period
                           </td>
                         </tr>
-                      ))}
+                      )}
                     </tbody>
                   </table>
                 </div>

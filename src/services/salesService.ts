@@ -109,6 +109,19 @@ export const salesService = {
     return response.data.data
   },
 
+  // Get single sale by ID
+  getSaleById: async (id: string): Promise<Sale> => {
+    if (USE_MOCK_DATA) {
+      await delay(300)
+      const sale = sales.find(s => s.id === id)
+      if (!sale) throw new Error('Sale not found')
+      return sale
+    }
+    
+    const response = await api.get<ApiResponse<Sale>>(`/sales/${id}`)
+    return response.data.data
+  },
+
   // Delete sale
   deleteSale: async (id: string): Promise<void> => {
     if (USE_MOCK_DATA) {
