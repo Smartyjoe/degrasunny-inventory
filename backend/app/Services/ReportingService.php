@@ -177,4 +177,70 @@ class ReportingService
             'activeProducts' => $activeProducts,
         ];
     }
+
+    /**
+     * Get comprehensive date range summary
+     * Backend-driven aggregation for Reports page
+     * 
+     * @param string $startDate
+     * @param string $endDate
+     * @param string $period
+     * @return array
+     */
+    public function getDateRangeSummary(string $startDate, string $endDate, string $period = 'daily'): array
+    {
+        // Get all sales in date range
+        $sales = Sale::with('product')
+            ->whereBetween('date', [$startDate, $endDate])
+            ->orderBy('date')
+            ->get();
+
+        // Calculate totals
+        $totalSales = $sales->sum('total_amount');
+        $totalProfit = $sales->sum('profit');
+        $salesCount = $sales->count();
+
+        // Group by date for chart data
+        $chartData = [];
+        $salesByDate = $sales->groupBy(function ($sale) {
+            return $sale->date->format('Y-m-d');
+        });
+
+        foreach ($salesByDate as $date => $dateSales) {
+            $chartData[] = [
+                'date' => $date,
+                'sales' => (float) $dateSales->sum('total_amount'),
+                'profit' => (float) $dateSales->sum('profit'),
+                'count' => $dateSales->count(),
+            ];
+        }
+
+        // Unit distribution
+        $unitDistribution = [];
+        $salesByUnit = $sales->groupBy('unit');
+        
+        foreach ($salesByUnit as $unit => $unitSales) {
+            $unitDistribution[] = [
+                'unit' => $unit,
+                'count' => $unitSales->sum('quantity'),
+                'value' => (float) $unitSales->sum('total_amount'),
+            ];
+        }
+
+        // Top products (already have from product performance endpoint)
+        $topProducts = $this->getProductPerformance([
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+        ]);
+
+        return [
+            'totalSales' => (float) $totalSales,
+            'totalProfit' => (float) $totalProfit,
+            'salesCount' => $salesCount,
+            'chartData' => $chartData,
+            'unitDistribution' => $unitDistribution,
+            'topProducts' => array_slice($topProducts, 0, 5),
+            'allProducts' => $topProducts,
+        ];
+    }
 }

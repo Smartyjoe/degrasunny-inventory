@@ -132,4 +132,12 @@ export const reportService = {
     })
     return response.data.data
   },
+
+  // Get comprehensive date range summary (backend-driven)
+  getDateRangeSummary: async (startDate: string, endDate: string, period: 'daily' | 'weekly' | 'monthly' = 'daily') => {
+    const response = await api.get<ApiResponse<any>>('/reports/summary', {
+      params: { startDate, endDate, period }
+    })
+    return response.data.data
+  },
 }

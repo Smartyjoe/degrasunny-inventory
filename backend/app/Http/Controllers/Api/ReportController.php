@@ -100,4 +100,29 @@ class ReportController extends Controller
             'data' => $performance,
         ]);
     }
+
+    /**
+     * Get comprehensive date range summary
+     * Includes totals, chart data, unit distribution, and top products
+     */
+    public function dateRangeSummary(Request $request): JsonResponse
+    {
+        $request->validate([
+            'startDate' => 'required|date',
+            'endDate' => 'required|date',
+            'period' => 'nullable|in:daily,weekly,monthly',
+        ]);
+
+        $startDate = $request->startDate;
+        $endDate = $request->endDate;
+        $period = $request->period ?? 'daily';
+
+        $summary = $this->reportingService->getDateRangeSummary($startDate, $endDate, $period);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Date range summary retrieved successfully',
+            'data' => $summary,
+        ]);
+    }
 }

@@ -59,5 +59,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/weekly', [ReportController::class, 'weeklySummary']);
         Route::get('/monthly', [ReportController::class, 'monthlySummary']);
         Route::get('/products', [ReportController::class, 'productPerformance']);
+        Route::get('/summary', [ReportController::class, 'dateRangeSummary']);
     });
 });

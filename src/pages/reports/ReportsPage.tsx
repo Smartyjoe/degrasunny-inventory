@@ -38,82 +38,30 @@ const ReportsPage = () => {
   })
   const [endDate, setEndDate] = useState(getTodayDate())
 
-  const { data: sales, isLoading: salesLoading } = useSales({ startDate, endDate })
-  const { data: products } = useProducts({ isActive: true })
-  const [productPerformanceData, setProductPerformanceData] = useState<ProductPerformance[]>([])
-  const [isLoadingPerformance, setIsLoadingPerformance] = useState(false)
+  const [reportSummary, setReportSummary] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const { data: sales } = useSales({ startDate, endDate })
 
-  // Fetch product performance from backend
+  // Fetch comprehensive report summary from backend
   useEffect(() => {
-    const fetchProductPerformance = async () => {
-      setIsLoadingPerformance(true)
+    const fetchReportSummary = async () => {
+      setIsLoading(true)
       try {
-        const data = await reportService.getProductPerformance({ startDate, endDate })
-        setProductPerformanceData(data)
+        const data = await reportService.getDateRangeSummary(startDate, endDate, period)
+        setReportSummary(data)
       } catch (error) {
-        console.error('Failed to load product performance:', error)
-        toast.error('Failed to load product performance')
+        console.error('Failed to load report summary:', error)
+        toast.error('Failed to load reports')
       } finally {
-        setIsLoadingPerformance(false)
+        setIsLoading(false)
       }
     }
 
-    fetchProductPerformance()
-  }, [startDate, endDate])
+    fetchReportSummary()
+  }, [startDate, endDate, period])
 
-  const reportData = useMemo(() => {
-    if (!sales || !products) return null
-
-    // Calculate totals
-    const totalSales = sales.reduce((sum, s) => sum + s.totalAmount, 0)
-    const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0)
-    const salesCount = sales.length
-
-    // Group by date for daily chart
-    const dailyData = sales.reduce((acc, sale) => {
-      const date = sale.date
-      if (!acc[date]) {
-        acc[date] = { date, sales: 0, profit: 0, count: 0 }
-      }
-      acc[date].sales += sale.totalAmount
-      acc[date].profit += sale.profit
-      acc[date].count += 1
-      return acc
-    }, {} as Record<string, { date: string; sales: number; profit: number; count: number }>)
-
-    const chartData = Object.values(dailyData).sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    )
-
-    // Top products from backend API (use first 5)
-    const topProducts = productPerformanceData.slice(0, 5).map(p => ({
-      productName: p.productName,
-      totalSales: p.totalSales,
-      totalProfit: p.totalProfit,
-      quantity: p.quantitySold,
-      count: p.salesCount,
-    }))
-
-    // Unit distribution
-    const unitDistribution = sales.reduce((acc, sale) => {
-      if (!acc[sale.unit]) {
-        acc[sale.unit] = { unit: sale.unit, count: 0, value: 0 }
-      }
-      acc[sale.unit].count += sale.quantity
-      acc[sale.unit].value += sale.totalAmount
-      return acc
-    }, {} as Record<string, { unit: string; count: number; value: number }>)
-
-    return {
-      totalSales,
-      totalProfit,
-      salesCount,
-      chartData,
-      topProducts,
-      unitDistribution: Object.values(unitDistribution),
-      allProductPerformance: productPerformanceData,
-    }
-  }, [sales, products, productPerformanceData])
+  // All data comes from backend - no local aggregation
+  const reportData = reportSummary
 
   const handleExportCSV = () => {
     if (!sales) return
@@ -142,7 +90,7 @@ const ReportsPage = () => {
     a.click()
   }
 
-  if (salesLoading || isLoadingPerformance) {
+  if (isLoading) {
     return <Loading message="Loading reports..." />
   }
 
@@ -250,36 +198,42 @@ const ReportsPage = () => {
                 <CardTitle>Sales & Profit Trend</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={reportData.chartData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={(date) => formatDate(date).split(',')[0]}
-                      style={{ fontSize: '12px' }}
-                    />
-                    <YAxis style={{ fontSize: '12px' }} />
-                    <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
-                      labelFormatter={(date) => formatDate(date)}
-                    />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="sales"
-                      stroke="#22c55e"
-                      name="Sales"
-                      strokeWidth={2}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="profit"
-                      stroke="#0ea5e9"
-                      name="Profit"
-                      strokeWidth={2}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
+                {reportData?.chartData && reportData.chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <LineChart data={reportData.chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="date"
+                        tickFormatter={(date) => formatDate(date).split(',')[0]}
+                        style={{ fontSize: '12px' }}
+                      />
+                      <YAxis style={{ fontSize: '12px' }} />
+                      <Tooltip
+                        formatter={(value: number) => formatCurrency(value)}
+                        labelFormatter={(date) => formatDate(date)}
+                      />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="sales"
+                        stroke="#22c55e"
+                        name="Sales"
+                        strokeWidth={2}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="profit"
+                        stroke="#0ea5e9"
+                        name="Profit"
+                        strokeWidth={2}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-gray-500">
+                    No data available for selected period
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -289,28 +243,34 @@ const ReportsPage = () => {
                 <CardTitle>Top Products by Sales</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={reportData.topProducts}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis
-                      dataKey="productName"
-                      style={{ fontSize: '11px' }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={80}
-                    />
-                    <YAxis style={{ fontSize: '12px' }} />
-                    <Tooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Legend />
-                    <Bar dataKey="totalSales" fill="#0ea5e9" name="Sales" />
-                    <Bar dataKey="totalProfit" fill="#22c55e" name="Profit" />
-                  </BarChart>
-                </ResponsiveContainer>
+                {reportData?.topProducts && reportData.topProducts.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={reportData.topProducts}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis
+                        dataKey="productName"
+                        style={{ fontSize: '11px' }}
+                        angle={-45}
+                        textAnchor="end"
+                        height={80}
+                      />
+                      <YAxis style={{ fontSize: '12px' }} />
+                      <Tooltip formatter={(value: number) => formatCurrency(value)} />
+                      <Legend />
+                      <Bar dataKey="totalSales" fill="#0ea5e9" name="Sales" />
+                      <Bar dataKey="totalProfit" fill="#22c55e" name="Profit" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-gray-500">
+                    No data available
+                  </div>
+                )}
               </CardContent>
             </Card>
 
             {/* Unit Distribution */}
-            {reportData.unitDistribution.length > 0 && (
+            {reportData?.unitDistribution && reportData.unitDistribution.length > 0 && (
               <Card>
                 <CardHeader>
                   <CardTitle>Sales by Unit</CardTitle>
@@ -325,9 +285,9 @@ const ReportsPage = () => {
                         cx="50%"
                         cy="50%"
                         outerRadius={100}
-                        label={(entry) => `${entry.unit}: ${formatCurrency(entry.value)}`}
+                        label={(entry: any) => `${entry.unit}: ${formatCurrency(entry.value)}`}
                       >
-                        {reportData.unitDistribution.map((entry, index) => (
+                        {reportData.unitDistribution.map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
@@ -356,8 +316,8 @@ const ReportsPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {reportData.allProductPerformance.length > 0 ? (
-                        reportData.allProductPerformance.map((product, index) => (
+                      {reportData?.allProducts && reportData.allProducts.length > 0 ? (
+                        reportData.allProducts.map((product: any, index: number) => (
                           <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
                             <td className="py-3 px-2 font-medium text-gray-900">
                               {product.productName}
