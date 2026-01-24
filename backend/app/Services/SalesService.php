@@ -13,7 +13,8 @@ class SalesService
 {
     public function __construct(
         protected PricingService $pricingService,
-        protected StockService $stockService
+        protected StockService $stockService,
+        protected StockLedgerService $ledgerService
     ) {}
 
     /**
@@ -23,7 +24,7 @@ class SalesService
     {
         return DB::transaction(function () use ($data) {
             $product = Product::findOrFail($data['product_id']);
-            $date = Carbon::parse($data['date'] ?? now());
+            $dateString = Carbon::parse($data['date'] ?? now())->toDateString();
 
             // Validate retail unit if applicable
             $this->pricingService->validateRetailUnit($product, $data['unit']);
@@ -45,7 +46,7 @@ class SalesService
             // Validate stock availability
             $this->stockService->validateStockAvailability($product, $bagsToDeduct);
 
-            // Create sale record
+            // Create sale record (use date string, not Carbon object)
             $sale = Sale::create([
                 'product_id' => $product->id,
                 'quantity' => $data['quantity'],
@@ -54,15 +55,15 @@ class SalesService
                 'total_amount' => $pricing['total_amount'],
                 'cost_equivalent' => $pricing['cost_equivalent'],
                 'profit' => $pricing['profit'],
-                'date' => $date,
+                'date' => $dateString,
                 'user_id' => auth()->id(),
             ]);
 
-            // Deduct stock
-            $this->stockService->deductStock($product, $bagsToDeduct, $date);
+            // Deduct stock (uses centralized ledger service internally)
+            $this->stockService->deductStock($product, $bagsToDeduct, $dateString);
 
             // Update profit summary
-            $this->updateProfitSummary($date, $sale);
+            $this->updateProfitSummary($dateString, $sale);
 
             // Log the sale
             AuditLog::log('created', 'sale', $sale->id, null, $sale->toArray());
@@ -74,10 +75,10 @@ class SalesService
     /**
      * Update daily profit summary
      */
-    protected function updateProfitSummary(Carbon $date, Sale $sale): void
+    protected function updateProfitSummary(string $dateString, Sale $sale): void
     {
         $summary = ProfitSummary::firstOrCreate(
-            ['date' => $date],
+            ['date' => $dateString],
             [
                 'total_sales' => 0,
                 'total_cost' => 0,
@@ -99,7 +100,7 @@ class SalesService
     {
         DB::transaction(function () use ($sale) {
             $product = $sale->product;
-            $date = $sale->date;
+            $dateString = Carbon::parse($sale->date)->toDateString();
 
             // Convert sale quantity back to bags
             $bagsToRestore = $this->pricingService->convertToBags(
@@ -108,15 +109,11 @@ class SalesService
                 $sale->quantity
             );
 
-            // Restore stock
-            $product->increment('current_stock', $bagsToRestore);
-
-            // Update stock ledger
-            $ledger = $this->stockService->initializeDailyStock($product, $date);
-            $ledger->decrement('stock_sold', $bagsToRestore);
+            // Restore stock (uses centralized ledger service internally)
+            $this->stockService->restoreStock($product, $bagsToRestore, $dateString);
 
             // Update profit summary
-            $summary = ProfitSummary::where('date', $date)->first();
+            $summary = ProfitSummary::where('date', $dateString)->first();
             if ($summary) {
                 $summary->decrement('total_sales', $sale->total_amount);
                 $summary->decrement('total_cost', $sale->cost_equivalent);

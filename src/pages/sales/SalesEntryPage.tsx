@@ -193,7 +193,8 @@ const SalesEntryPage = () => {
                       <Input
                         label="Quantity"
                         type="number"
-                        min="1"
+                        min="0.01"
+                        step="0.01"
                         placeholder="1"
                         error={errors.quantity?.message}
                         {...register('quantity', { valueAsNumber: true })}
@@ -229,7 +230,7 @@ const SalesEntryPage = () => {
                       fullWidth
                       size="lg"
                       isLoading={createSale.isPending}
-                      disabled={!selectedProduct || !unit || quantity < 1}
+                      disabled={!selectedProduct || !unit || quantity < 0.01}
                     >
                       <ShoppingCart className="w-5 h-5 mr-2" />
                       Record Sale

@@ -11,49 +11,18 @@ use Carbon\Carbon;
 
 class StockService
 {
-    /**
-     * Initialize daily stock for a product
-     */
-    public function initializeDailyStock(Product $product, Carbon $date): StockLedger
-    {
-        // Check if already exists
-        $existing = StockLedger::where('product_id', $product->id)
-            ->where('date', $date)
-            ->first();
-
-        if ($existing) {
-            return $existing;
-        }
-
-        // Get previous day's closing stock
-        $previousDay = $date->copy()->subDay();
-        $previousLedger = StockLedger::where('product_id', $product->id)
-            ->where('date', $previousDay)
-            ->first();
-
-        $openingStock = $previousLedger ? $previousLedger->closing_stock : $product->current_stock;
-
-        return StockLedger::create([
-            'product_id' => $product->id,
-            'date' => $date,
-            'opening_stock' => $openingStock,
-            'stock_added' => 0,
-            'stock_sold' => 0,
-            'closing_stock' => $openingStock,
-        ]);
-    }
+    public function __construct(
+        protected StockLedgerService $ledgerService
+    ) {}
 
     /**
      * Carry forward closing stock to next day
+     * Used by scheduled task
      */
     public function carryForwardStock(): void
     {
         $today = Carbon::today();
-        $products = Product::active()->get();
-
-        foreach ($products as $product) {
-            $this->initializeDailyStock($product, $today);
-        }
+        $this->ledgerService->initializeDailyLedgersForAllProducts($today);
     }
 
     /**
@@ -63,7 +32,7 @@ class StockService
     {
         return DB::transaction(function () use ($data) {
             $product = Product::findOrFail($data['product_id']);
-            $date = Carbon::parse($data['date']);
+            $dateString = Carbon::parse($data['date'])->toDateString();
 
             // Create stock addition record
             $addition = StockAddition::create([
@@ -71,16 +40,18 @@ class StockService
                 'quantity' => $data['quantity'],
                 'cost_price' => $data['cost_price'],
                 'supplier' => $data['supplier'] ?? null,
-                'date' => $date,
+                'date' => $dateString,
                 'notes' => $data['notes'] ?? null,
             ]);
 
             // Update product current stock
             $product->increment('current_stock', $data['quantity']);
 
-            // Update or create daily stock ledger
-            $ledger = $this->initializeDailyStock($product, $date);
-            $ledger->increment('stock_added', $data['quantity']);
+            // Get or create daily stock ledger (centralized, no duplicates)
+            $ledger = $this->ledgerService->getOrCreateDailyLedger($product->id, $dateString);
+            
+            // Update stock added and recalculate closing
+            $this->ledgerService->addStock($ledger, $data['quantity']);
 
             // Update cost price if provided
             if (isset($data['update_cost_price']) && $data['update_cost_price']) {
@@ -97,9 +68,9 @@ class StockService
     /**
      * Update stock after sale
      */
-    public function deductStock(Product $product, float $quantity, Carbon $date): void
+    public function deductStock(Product $product, float $quantity, string $dateString): void
     {
-        DB::transaction(function () use ($product, $quantity, $date) {
+        DB::transaction(function () use ($product, $quantity, $dateString) {
             // Check if sufficient stock
             if ($product->current_stock < $quantity) {
                 throw new \Exception('Insufficient stock. Available: ' . $product->current_stock . ' bags');
@@ -108,9 +79,28 @@ class StockService
             // Update product stock
             $product->decrement('current_stock', $quantity);
 
-            // Update daily ledger
-            $ledger = $this->initializeDailyStock($product, $date);
-            $ledger->increment('stock_sold', $quantity);
+            // Get or create daily ledger (centralized, no duplicates)
+            $ledger = $this->ledgerService->getOrCreateDailyLedger($product->id, $dateString);
+            
+            // Update stock sold and recalculate closing
+            $this->ledgerService->deductStock($ledger, $quantity);
+        });
+    }
+
+    /**
+     * Restore stock after sale deletion
+     */
+    public function restoreStock(Product $product, float $quantity, string $dateString): void
+    {
+        DB::transaction(function () use ($product, $quantity, $dateString) {
+            // Restore product stock
+            $product->increment('current_stock', $quantity);
+
+            // Get or create daily ledger
+            $ledger = $this->ledgerService->getOrCreateDailyLedger($product->id, $dateString);
+            
+            // Restore stock (decrease stock_sold)
+            $this->ledgerService->restoreStock($ledger, $quantity);
         });
     }
 
@@ -157,23 +147,8 @@ class StockService
     /**
      * Get daily stock for date
      */
-    public function getDailyStock(Carbon $date): array
+    public function getDailyStock(string $dateString): array
     {
-        return StockLedger::with('product')
-            ->where('date', $date)
-            ->get()
-            ->map(function ($ledger) {
-                return [
-                    'id' => (string) $ledger->id,
-                    'productId' => (string) $ledger->product_id,
-                    'productName' => $ledger->product ? $ledger->product->name : 'Unknown Product',
-                    'date' => $ledger->date->format('Y-m-d'),
-                    'openingStock' => (float) $ledger->opening_stock,
-                    'stockAdded' => (float) $ledger->stock_added,
-                    'stockSold' => (float) $ledger->stock_sold,
-                    'closingStock' => (float) $ledger->closing_stock,
-                ];
-            })
-            ->toArray();
+        return $this->ledgerService->getDailyStockForDate($dateString);
     }
 }

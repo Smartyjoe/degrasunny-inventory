@@ -27,8 +27,8 @@ class StockController extends Controller
             'date' => 'required|date',
         ]);
 
-        $date = Carbon::parse($request->date);
-        $stocks = $this->stockService->getDailyStock($date);
+        $dateString = Carbon::parse($request->date)->toDateString();
+        $stocks = $this->stockService->getDailyStock($dateString);
 
         return response()->json([
             'success' => true,
