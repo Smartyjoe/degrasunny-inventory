@@ -109,7 +109,7 @@ class StockController extends Controller
                 return [
                     'id' => (string) $addition->id,
                     'productId' => (string) $addition->product_id,
-                    'productName' => $addition->product->name,
+                    'productName' => $addition->product ? $addition->product->name : 'Unknown Product',
                     'quantity' => (float) $addition->quantity,
                     'costPrice' => (float) $addition->cost_price,
                     'totalCost' => (float) $addition->total_cost,

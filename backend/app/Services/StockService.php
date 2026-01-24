@@ -166,7 +166,7 @@ class StockService
                 return [
                     'id' => (string) $ledger->id,
                     'productId' => (string) $ledger->product_id,
-                    'productName' => $ledger->product->name,
+                    'productName' => $ledger->product ? $ledger->product->name : 'Unknown Product',
                     'date' => $ledger->date->format('Y-m-d'),
                     'openingStock' => (float) $ledger->opening_stock,
                     'stockAdded' => (float) $ledger->stock_added,

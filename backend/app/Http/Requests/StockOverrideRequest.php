@@ -11,6 +11,29 @@ class StockOverrideRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        // Map camelCase to snake_case BEFORE validation
+        $data = [];
+        
+        if ($this->has('openingStock')) {
+            $data['opening_stock'] = $this->input('openingStock');
+        }
+        if ($this->has('stockAdded')) {
+            $data['stock_added'] = $this->input('stockAdded');
+        }
+        if ($this->has('stockSold')) {
+            $data['stock_sold'] = $this->input('stockSold');
+        }
+        if ($this->has('closingStock')) {
+            $data['closing_stock'] = $this->input('closingStock');
+        }
+        
+        if (!empty($data)) {
+            $this->merge($data);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -29,16 +52,5 @@ class StockOverrideRequest extends FormRequest
             'stock_sold.min' => 'Stock sold cannot be negative',
             'closing_stock.min' => 'Closing stock cannot be negative',
         ];
-    }
-
-    protected function prepareForValidation(): void
-    {
-        // Map camelCase to snake_case
-        $this->merge([
-            'opening_stock' => $this->openingStock ?? $this->opening_stock,
-            'stock_added' => $this->stockAdded ?? $this->stock_added,
-            'stock_sold' => $this->stockSold ?? $this->stock_sold,
-            'closing_stock' => $this->closingStock ?? $this->closing_stock,
-        ]);
     }
 }

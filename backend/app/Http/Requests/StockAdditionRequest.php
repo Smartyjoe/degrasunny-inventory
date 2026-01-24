@@ -11,6 +11,26 @@ class StockAdditionRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        // Map camelCase to snake_case BEFORE validation
+        $data = [];
+        
+        if ($this->has('productId')) {
+            $data['product_id'] = $this->input('productId');
+        }
+        if ($this->has('costPrice')) {
+            $data['cost_price'] = $this->input('costPrice');
+        }
+        if ($this->has('updateCostPrice')) {
+            $data['update_cost_price'] = $this->boolean('updateCostPrice');
+        }
+        
+        if (!empty($data)) {
+            $this->merge($data);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -36,15 +56,5 @@ class StockAdditionRequest extends FormRequest
             'date.required' => 'Date is required',
             'date.date' => 'Please provide a valid date',
         ];
-    }
-
-    protected function prepareForValidation(): void
-    {
-        // Map camelCase to snake_case
-        $this->merge([
-            'product_id' => $this->productId ?? $this->product_id,
-            'cost_price' => $this->costPrice ?? $this->cost_price,
-            'update_cost_price' => $this->updateCostPrice ?? $this->update_cost_price ?? false,
-        ]);
     }
 }
