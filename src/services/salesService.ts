@@ -3,7 +3,7 @@ import { delay, mockSales } from './mockData'
 import { productService } from './productService'
 import { Sale, SaleFormData, ApiResponse } from '@/types'
 
-const USE_MOCK_DATA = true
+const USE_MOCK_DATA = false
 
 let sales = [...mockSales] // Local state for mock
 

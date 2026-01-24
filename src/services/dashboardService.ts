@@ -4,7 +4,7 @@ import { salesService } from './salesService'
 import { productService } from './productService'
 import { DashboardStats, ApiResponse } from '@/types'
 
-const USE_MOCK_DATA = true
+const USE_MOCK_DATA = false
 
 export const dashboardService = {
   // Get dashboard stats

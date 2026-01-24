@@ -8,7 +8,7 @@ import {
 } from '@/types'
 
 // Use mock data for development
-const USE_MOCK_DATA = true
+const USE_MOCK_DATA = false
 
 export const authService = {
   // Login

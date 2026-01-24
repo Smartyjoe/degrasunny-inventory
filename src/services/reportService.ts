@@ -3,7 +3,7 @@ import { delay } from './mockData'
 import { salesService } from './salesService'
 import { DailySummary, WeeklySummary, MonthlySummary, ApiResponse } from '@/types'
 
-const USE_MOCK_DATA = true
+const USE_MOCK_DATA = false
 
 export const reportService = {
   // Get daily summary

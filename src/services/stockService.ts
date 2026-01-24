@@ -3,7 +3,7 @@ import { delay, mockDailyStock, mockStockAdditions } from './mockData'
 import { productService } from './productService'
 import { DailyStock, StockAddition, ApiResponse } from '@/types'
 
-const USE_MOCK_DATA = true
+const USE_MOCK_DATA = false
 
 let dailyStocks = [...mockDailyStock]
 let stockAdditions = [...mockStockAdditions]
