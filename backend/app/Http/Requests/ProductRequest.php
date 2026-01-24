@@ -11,19 +11,54 @@ class ProductRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        // Map camelCase to snake_case BEFORE validation
+        $data = [];
+        
+        if ($this->has('costPrice')) {
+            $data['cost_price'] = $this->input('costPrice');
+        }
+        if ($this->has('sellingPrice')) {
+            $data['selling_price'] = $this->input('sellingPrice');
+        }
+        if ($this->has('isRetailEnabled')) {
+            $data['is_retail_enabled'] = $this->boolean('isRetailEnabled');
+        }
+        if ($this->has('cupsPerBag')) {
+            $data['cups_per_bag'] = $this->input('cupsPerBag');
+        }
+        if ($this->has('bucketsPerBag')) {
+            $data['buckets_per_bag'] = $this->input('bucketsPerBag');
+        }
+        if ($this->has('cupPrice')) {
+            $data['cup_price'] = $this->input('cupPrice');
+        }
+        if ($this->has('bucketPrice')) {
+            $data['bucket_price'] = $this->input('bucketPrice');
+        }
+        if ($this->has('reorderLevel')) {
+            $data['reorder_level'] = $this->input('reorderLevel');
+        }
+        
+        if (!empty($data)) {
+            $this->merge($data);
+        }
+    }
+
     public function rules(): array
     {
         $rules = [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'costPrice' => 'required|numeric|min:0',
-            'sellingPrice' => 'required|numeric|min:0',
-            'isRetailEnabled' => 'boolean',
-            'cupsPerBag' => 'nullable|integer|min:1',
-            'bucketsPerBag' => 'nullable|integer|min:1',
-            'cupPrice' => 'nullable|numeric|min:0',
-            'bucketPrice' => 'nullable|numeric|min:0',
-            'reorderLevel' => 'required|numeric|min:0',
+            'cost_price' => 'required|numeric|min:0',
+            'selling_price' => 'required|numeric|min:0',
+            'is_retail_enabled' => 'boolean',
+            'cups_per_bag' => 'nullable|integer|min:1',
+            'buckets_per_bag' => 'nullable|integer|min:1',
+            'cup_price' => 'nullable|numeric|min:0',
+            'bucket_price' => 'nullable|numeric|min:0',
+            'reorder_level' => 'required|numeric|min:0',
         ];
 
         // Unique name validation (except for current product on update)
@@ -41,27 +76,12 @@ class ProductRequest extends FormRequest
         return [
             'name.required' => 'Product name is required',
             'name.unique' => 'A product with this name already exists',
-            'costPrice.required' => 'Cost price is required',
-            'costPrice.min' => 'Cost price cannot be negative',
-            'sellingPrice.required' => 'Selling price is required',
-            'sellingPrice.min' => 'Selling price cannot be negative',
-            'reorderLevel.required' => 'Reorder level is required',
-            'reorderLevel.min' => 'Reorder level cannot be negative',
+            'cost_price.required' => 'Cost price is required',
+            'cost_price.min' => 'Cost price cannot be negative',
+            'selling_price.required' => 'Selling price is required',
+            'selling_price.min' => 'Selling price cannot be negative',
+            'reorder_level.required' => 'Reorder level is required',
+            'reorder_level.min' => 'Reorder level cannot be negative',
         ];
-    }
-
-    protected function prepareForValidation(): void
-    {
-        // Map camelCase to snake_case
-        $this->merge([
-            'cost_price' => $this->costPrice ?? $this->cost_price,
-            'selling_price' => $this->sellingPrice ?? $this->selling_price,
-            'is_retail_enabled' => $this->isRetailEnabled ?? $this->is_retail_enabled ?? false,
-            'cups_per_bag' => $this->cupsPerBag ?? $this->cups_per_bag,
-            'buckets_per_bag' => $this->bucketsPerBag ?? $this->buckets_per_bag,
-            'cup_price' => $this->cupPrice ?? $this->cup_price,
-            'bucket_price' => $this->bucketPrice ?? $this->bucket_price,
-            'reorder_level' => $this->reorderLevel ?? $this->reorder_level,
-        ]);
     }
 }

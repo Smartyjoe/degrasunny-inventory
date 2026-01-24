@@ -12,6 +12,20 @@ class SaleRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        // Map camelCase to snake_case BEFORE validation
+        $data = [];
+        
+        if ($this->has('productId')) {
+            $data['product_id'] = $this->input('productId');
+        }
+        
+        if (!empty($data)) {
+            $this->merge($data);
+        }
+    }
+
     public function rules(): array
     {
         return [
@@ -33,13 +47,5 @@ class SaleRequest extends FormRequest
             'unit.in' => 'Unit must be bag, cup, or bucket',
             'date.date' => 'Please provide a valid date',
         ];
-    }
-
-    protected function prepareForValidation(): void
-    {
-        // Map camelCase to snake_case
-        $this->merge([
-            'product_id' => $this->productId ?? $this->product_id,
-        ]);
     }
 }
