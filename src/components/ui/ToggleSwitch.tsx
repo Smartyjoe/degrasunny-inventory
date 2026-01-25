@@ -24,8 +24,8 @@ const ToggleSwitch = forwardRef<HTMLInputElement, ToggleSwitchProps>(
             htmlFor={toggleId}
             className={cn(
               'relative w-11 h-6 rounded-full cursor-pointer transition-colors',
-              'bg-gray-300 peer-checked:bg-primary-600',
-              'peer-focus:ring-2 peer-focus:ring-primary-500 peer-focus:ring-offset-2',
+              'bg-gray-300 dark:bg-gray-600 peer-checked:bg-primary-600 dark:peer-checked:bg-primary-500',
+              'peer-focus:ring-2 peer-focus:ring-primary-500 peer-focus:ring-offset-2 dark:peer-focus:ring-offset-gray-900',
               'peer-disabled:opacity-50 peer-disabled:cursor-not-allowed',
               'after:content-[""] after:absolute after:top-0.5 after:left-0.5',
               'after:bg-white after:rounded-full after:h-5 after:w-5',
@@ -40,13 +40,13 @@ const ToggleSwitch = forwardRef<HTMLInputElement, ToggleSwitchProps>(
             {label && (
               <label
                 htmlFor={toggleId}
-                className="block text-sm font-medium text-gray-900 cursor-pointer"
+                className="block text-sm font-medium text-gray-900 dark:text-gray-100 cursor-pointer"
               >
                 {label}
               </label>
             )}
             {description && (
-              <p className="text-sm text-gray-500">{description}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{description}</p>
             )}
           </div>
         )}

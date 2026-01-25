@@ -3,6 +3,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useProducts } from '@/hooks/useProducts'
 import { useCreateSale, useTodaySales } from '@/hooks/useSales'
+import { useTransactionValidation } from '@/hooks/useAI'
+import { contextBuilder } from '@/services/ai/contextBuilder'
 import { saleSchema } from '@/utils/validation'
 import { SaleFormData, Product, SaleUnit } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -12,6 +14,8 @@ import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { Loading } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
+import { AIErrorWarning } from '@/components/ai/AIErrorWarning'
+import { AIChat } from '@/components/ai/AIChat'
 import { ShoppingCart, Plus, TrendingUp } from 'lucide-react'
 import { formatCurrency, formatTime, calculateProfit } from '@/utils/format'
 
@@ -19,8 +23,11 @@ const SalesEntryPage = () => {
   const { data: products, isLoading: productsLoading } = useProducts({ isActive: true })
   const { data: todaySales } = useTodaySales()
   const createSale = useCreateSale()
+  const { warnings, validateTransaction, clearWarnings } = useTransactionValidation()
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [showWarnings, setShowWarnings] = useState(false)
+  const [pendingFormData, setPendingFormData] = useState<SaleFormData | null>(null)
 
   const {
     register,
@@ -80,13 +87,48 @@ const SalesEntryPage = () => {
   }
 
   const onSubmit = async (data: SaleFormData) => {
+    // Build context for AI validation
+    const context = contextBuilder.buildContext({
+      products: products || [],
+      sales: todaySales || [],
+    })
+
+    // Validate transaction with AI
+    const validationWarnings = await validateTransaction('sale', data, context)
+
+    if (validationWarnings.length > 0) {
+      setPendingFormData(data)
+      setShowWarnings(true)
+      return
+    }
+
+    // No warnings, proceed with submission
+    await submitSale(data)
+  }
+
+  const submitSale = async (data: SaleFormData) => {
     try {
       await createSale.mutateAsync(data)
       reset()
       setSelectedProduct(null)
+      clearWarnings()
+      setPendingFormData(null)
     } catch (error) {
       // Error handled by mutation
     }
+  }
+
+  const handleProceedAnyway = async () => {
+    if (pendingFormData) {
+      setShowWarnings(false)
+      await submitSale(pendingFormData)
+    }
+  }
+
+  const handleDismissWarnings = () => {
+    setShowWarnings(false)
+    clearWarnings()
+    setPendingFormData(null)
   }
 
   if (productsLoading) {
@@ -315,6 +357,21 @@ const SalesEntryPage = () => {
           )}
         </div>
       </div>
+
+      {/* AI Error Warning Modal */}
+      {showWarnings && (
+        <AIErrorWarning
+          warnings={warnings}
+          onDismiss={handleDismissWarnings}
+          onProceed={warnings.every(w => w.canProceed) ? handleProceedAnyway : undefined}
+        />
+      )}
+
+      {/* AI Chat Widget */}
+      <AIChat
+        products={products || []}
+        sales={todaySales || []}
+      />
     </div>
   )
 }

@@ -3,8 +3,26 @@
 @tailwind utilities;
 
 @layer base {
+  /* Smooth theme transitions */
+  * {
+    @apply transition-colors duration-300;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Apply theme-specific styles */
+  html, html[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  html[data-theme="dark"] {
+    color-scheme: dark;
+  }
+
   body {
-    @apply bg-gray-50 text-gray-900 antialiased;
+    @apply bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 antialiased;
     font-family: 'Inter', system-ui, sans-serif;
   }
 
@@ -21,15 +39,15 @@
   }
 
   .scrollbar-thin::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+    @apply bg-gray-100 dark:bg-gray-800;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
   }
 
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
+    @apply bg-gray-400 dark:bg-gray-500;
   }
 
   /* Number input without spinners */

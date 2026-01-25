@@ -32,8 +32,8 @@ const StatCard = ({
     >
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-gray-600 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-gray-900 mb-2">{value}</p>
+          <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">{title}</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white mb-2">{value}</p>
           
           {change && (
             <p

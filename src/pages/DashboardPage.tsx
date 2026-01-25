@@ -1,6 +1,7 @@
 import { useDashboardStats } from '@/hooks/useDashboard'
 import { useProducts } from '@/hooks/useProducts'
 import { useTodaySales } from '@/hooks/useSales'
+import { useProfitInsights, useDailySummary, useStockRecommendations, useAIAutoRefresh } from '@/hooks/useAI'
 import { 
   DollarSign, 
   TrendingUp, 
@@ -17,12 +18,36 @@ import { Loading } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { formatCurrency, formatTime, getStockStatus } from '@/utils/format'
 import { useNavigate } from 'react-router-dom'
+import { AIChat } from '@/components/ai/AIChat'
+import { AIInsightsPanel } from '@/components/ai/AIInsightsPanel'
+import { AIDailySummary } from '@/components/ai/AIDailySummary'
+import { AIStockAlerts } from '@/components/ai/AIStockAlerts'
 
 const DashboardPage = () => {
   const navigate = useNavigate()
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
+  const { data: products } = useProducts({ isActive: true })
   const { data: lowStockProducts, isLoading: productsLoading } = useProducts({ lowStock: true })
   const { data: todaySales, isLoading: salesLoading } = useTodaySales()
+
+  // AI Features
+  const { insights, isLoading: insightsLoading, refetch: refetchInsights } = useProfitInsights(
+    products || [],
+    todaySales || [],
+    stats
+  )
+  const { summary, isLoading: summaryLoading } = useDailySummary(
+    products || [],
+    todaySales || [],
+    stats
+  )
+  const { recommendations, isLoading: stockRecsLoading } = useStockRecommendations(
+    products || [],
+    todaySales || []
+  )
+
+  // Enable auto-refresh for AI insights
+  useAIAutoRefresh(products || [], todaySales || [], stats)
 
   if (statsLoading) {
     return <Loading message="Loading dashboard..." />
@@ -195,6 +220,23 @@ const DashboardPage = () => {
         </Card>
       </div>
 
+      {/* AI Daily Summary */}
+      <AIDailySummary summary={summary} isLoading={summaryLoading} />
+
+      {/* AI Insights and Stock Alerts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AIInsightsPanel 
+          insights={insights} 
+          isLoading={insightsLoading}
+          onRefresh={refetchInsights}
+        />
+        <AIStockAlerts 
+          recommendations={recommendations}
+          isLoading={stockRecsLoading}
+          onReorder={(rec) => navigate('/stock-addition')}
+        />
+      </div>
+
       {/* Quick Actions */}
       <Card>
         <CardHeader>
@@ -240,6 +282,13 @@ const DashboardPage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Chat Widget */}
+      <AIChat 
+        products={products || []}
+        sales={todaySales || []}
+        dashboardStats={stats}
+      />
     </div>
   )
 }
