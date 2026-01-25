@@ -105,6 +105,7 @@ export const salesService = {
       return newSale
     }
     
+    console.log('Sending sale data:', data)
     const response = await api.post<ApiResponse<Sale>>('/sales', data)
     return response.data.data
   },
@@ -137,3 +138,4 @@ export const salesService = {
     await api.delete(`/sales/${id}`)
   },
 }
+

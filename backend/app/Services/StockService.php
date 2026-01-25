@@ -16,16 +16,7 @@ class StockService
      */
     public function initializeDailyStock(Product $product, Carbon $date): StockLedger
     {
-        // Check if already exists
-        $existing = StockLedger::where('product_id', $product->id)
-            ->where('date', $date)
-            ->first();
-
-        if ($existing) {
-            return $existing;
-        }
-
-        // Get previous day's closing stock
+        // Use updateOrCreate to avoid duplicate entry errors
         $previousDay = $date->copy()->subDay();
         $previousLedger = StockLedger::where('product_id', $product->id)
             ->where('date', $previousDay)
@@ -33,14 +24,19 @@ class StockService
 
         $openingStock = $previousLedger ? $previousLedger->closing_stock : $product->current_stock;
 
-        return StockLedger::create([
-            'product_id' => $product->id,
-            'date' => $date,
-            'opening_stock' => $openingStock,
-            'stock_added' => 0,
-            'stock_sold' => 0,
-            'closing_stock' => $openingStock,
-        ]);
+        return StockLedger::updateOrCreate(
+            [
+                'product_id' => $product->id,
+                'date' => $date,
+            ],
+            [
+                'user_id' => $product->user_id,
+                'opening_stock' => $openingStock,
+                'stock_added' => 0,
+                'stock_sold' => 0,
+                'closing_stock' => $openingStock,
+            ]
+        );
     }
 
     /**
@@ -57,7 +53,7 @@ class StockService
     }
 
     /**
-     * Add stock to product
+     * Add stock to product (with proper locking)
      */
     public function addStock(array $data): StockAddition
     {
@@ -67,6 +63,7 @@ class StockService
 
             // Create stock addition record
             $addition = StockAddition::create([
+                'user_id' => auth()->id(),
                 'product_id' => $product->id,
                 'quantity' => $data['quantity'],
                 'cost_price' => $data['cost_price'],
@@ -78,9 +75,38 @@ class StockService
             // Update product current stock
             $product->increment('current_stock', $data['quantity']);
 
-            // Update or create daily stock ledger
-            $ledger = $this->initializeDailyStock($product, $date);
-            $ledger->increment('stock_added', $data['quantity']);
+            // Get or create daily ledger with row locking
+            $ledger = StockLedger::where('user_id', $product->user_id)
+                ->where('product_id', $product->id)
+                ->where('date', $date)
+                ->lockForUpdate()
+                ->first();
+
+            if ($ledger) {
+                // Ledger exists - update it
+                $ledger->stock_added += $data['quantity'];
+                $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
+                $ledger->save();
+            } else {
+                // Ledger doesn't exist - create it
+                $previousDay = $date->copy()->subDay();
+                $previousLedger = StockLedger::where('user_id', $product->user_id)
+                    ->where('product_id', $product->id)
+                    ->where('date', $previousDay)
+                    ->first();
+
+                $openingStock = $previousLedger ? $previousLedger->closing_stock : ($product->current_stock - $data['quantity']);
+
+                StockLedger::create([
+                    'user_id' => $product->user_id,
+                    'product_id' => $product->id,
+                    'date' => $date,
+                    'opening_stock' => $openingStock,
+                    'stock_added' => $data['quantity'],
+                    'stock_sold' => 0,
+                    'closing_stock' => $openingStock + $data['quantity'],
+                ]);
+            }
 
             // Update cost price if provided
             if (isset($data['update_cost_price']) && $data['update_cost_price']) {
@@ -95,7 +121,7 @@ class StockService
     }
 
     /**
-     * Update stock after sale
+     * Update stock after sale (with proper locking to prevent race conditions)
      */
     public function deductStock(Product $product, float $quantity, Carbon $date): void
     {
@@ -108,9 +134,38 @@ class StockService
             // Update product stock
             $product->decrement('current_stock', $quantity);
 
-            // Update daily ledger
-            $ledger = $this->initializeDailyStock($product, $date);
-            $ledger->increment('stock_sold', $quantity);
+            // Get or create daily ledger with row locking
+            $ledger = StockLedger::where('user_id', $product->user_id)
+                ->where('product_id', $product->id)
+                ->where('date', $date)
+                ->lockForUpdate()
+                ->first();
+
+            if ($ledger) {
+                // Ledger exists - update it
+                $ledger->stock_sold += $quantity;
+                $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
+                $ledger->save();
+            } else {
+                // Ledger doesn't exist - create it
+                $previousDay = $date->copy()->subDay();
+                $previousLedger = StockLedger::where('user_id', $product->user_id)
+                    ->where('product_id', $product->id)
+                    ->where('date', $previousDay)
+                    ->first();
+
+                $openingStock = $previousLedger ? $previousLedger->closing_stock : $product->current_stock + $quantity;
+
+                StockLedger::create([
+                    'user_id' => $product->user_id,
+                    'product_id' => $product->id,
+                    'date' => $date,
+                    'opening_stock' => $openingStock,
+                    'stock_added' => 0,
+                    'stock_sold' => $quantity,
+                    'closing_stock' => $openingStock - $quantity,
+                ]);
+            }
         });
     }
 

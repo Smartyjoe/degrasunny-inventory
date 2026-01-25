@@ -81,7 +81,10 @@ class SalesService
     protected function updateProfitSummary(Carbon $date, Sale $sale): void
     {
         $summary = ProfitSummary::firstOrCreate(
-            ['date' => $date],
+            [
+                'user_id' => auth()->id(),
+                'date' => $date,
+            ],
             [
                 'total_sales' => 0,
                 'total_cost' => 0,
@@ -120,7 +123,9 @@ class SalesService
             $ledger->decrement('stock_sold', $bagsToRestore);
 
             // Update profit summary
-            $summary = ProfitSummary::where('date', $date)->first();
+            $summary = ProfitSummary::where('user_id', auth()->id())
+                ->where('date', $date)
+                ->first();
             if ($summary) {
                 $summary->decrement('total_sales', $sale->total_amount);
                 $summary->decrement('total_cost', $sale->cost_equivalent);
