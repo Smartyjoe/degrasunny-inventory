@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useProducts } from '@/hooks/useProducts'
 import { useCreateSale, useTodaySales } from '@/hooks/useSales'
 import { saleSchema } from '@/utils/validation'
-import { SaleFormData, Product, SaleUnit } from '@/types'
+import { SaleFormData, Product, SaleUnit, PaymentMethod } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
@@ -33,6 +33,7 @@ const SalesEntryPage = () => {
     resolver: zodResolver(saleSchema),
     defaultValues: {
       quantity: 1,
+        paymentMethod: 'cash',
     },
   })
 
@@ -198,6 +199,18 @@ const SalesEntryPage = () => {
                         error={errors.quantity?.message}
                         {...register('quantity', { valueAsNumber: true })}
                       />
+
+                    {/* Payment Method */}
+                    <Select
+                      label="Payment Method"
+                      options={[
+                        { value: 'cash', label: 'Cash' },
+                        { value: 'pos', label: 'POS' },
+                        { value: 'bank_transfer', label: 'Bank Transfer' },
+                      ]}
+                      error={errors.paymentMethod?.message}
+                      {...register('paymentMethod')}
+                    />
                     </div>
 
                     {/* Price Summary */}
@@ -301,6 +314,12 @@ const SalesEntryPage = () => {
                       <div className="flex justify-between items-center">
                         <Badge size="sm" variant="info">
                           {sale.quantity} {sale.unit}
+                          <Badge
+                            size="sm"
+                            variant={sale.paymentMethod === 'cash' ? 'success' : sale.paymentMethod === 'pos' ? 'info' : 'default'}
+                          >
+                            {sale.paymentMethod === 'bank_transfer' ? 'Bank' : sale.paymentMethod.toUpperCase()}
+                          </Badge>
                         </Badge>
                         <span className="font-semibold text-gray-900">
                           {formatCurrency(sale.totalAmount)}
@@ -319,3 +338,5 @@ const SalesEntryPage = () => {
 }
 
 export default SalesEntryPage
+
+
