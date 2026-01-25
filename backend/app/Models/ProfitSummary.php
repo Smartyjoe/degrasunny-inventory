@@ -10,6 +10,7 @@ class ProfitSummary extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'date',
         'total_sales',
         'total_cost',
@@ -24,6 +25,36 @@ class ProfitSummary extends Model
         'total_profit' => 'decimal:2',
         'sales_count' => 'integer',
     ];
+
+    // Relationships
+    
+    /**
+     * Get the user that owns the profit summary.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Boot the model and add global scope for multi-tenancy.
+     */
+    protected static function booted()
+    {
+        // Automatically scope queries to current user
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+
+        // Automatically set user_id on create
+        static::creating(function ($summary) {
+            if (auth()->check() && !$summary->user_id) {
+                $summary->user_id = auth()->id();
+            }
+        });
+    }
 
     // Scopes
     public function scopeForDate($query, $date)

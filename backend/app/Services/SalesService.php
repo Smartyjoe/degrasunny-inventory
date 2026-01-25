@@ -22,7 +22,10 @@ class SalesService
     public function createSale(array $data): Sale
     {
         return DB::transaction(function () use ($data) {
-            $product = Product::findOrFail($data['product_id']);
+            // Ensure product belongs to authenticated user
+            $product = Product::where('id', $data['product_id'])
+                ->where('user_id', auth()->id())
+                ->firstOrFail();
             $date = Carbon::parse($data['date'] ?? now());
 
             // Validate retail unit if applicable
@@ -54,6 +57,7 @@ class SalesService
                 'total_amount' => $pricing['total_amount'],
                 'cost_equivalent' => $pricing['cost_equivalent'],
                 'profit' => $pricing['profit'],
+                'payment_method' => $data['payment_method'] ?? 'cash',
                 'date' => $date,
                 'user_id' => auth()->id(),
             ]);
@@ -161,6 +165,7 @@ class SalesService
                 'pricePerUnit' => (float) $sale->unit_price,
                 'totalAmount' => (float) $sale->total_amount,
                 'profit' => (float) $sale->profit,
+                'paymentMethod' => $sale->payment_method,
                 'date' => $sale->date->format('Y-m-d'),
                 'createdAt' => $sale->created_at->toIso8601String(),
             ];

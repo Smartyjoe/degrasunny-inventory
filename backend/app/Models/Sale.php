@@ -10,6 +10,7 @@ class Sale extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'product_id',
         'quantity',
         'unit',
@@ -18,7 +19,7 @@ class Sale extends Model
         'cost_equivalent',
         'profit',
         'date',
-        'user_id',
+        'payment_method',
     ];
 
     protected $casts = [
@@ -33,14 +34,41 @@ class Sale extends Model
     protected $with = ['product'];
 
     // Relationships
-    public function product()
-    {
-        return $this->belongsTo(Product::class)->withTrashed();
-    }
-
+    
+    /**
+     * Get the user that owns the sale.
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the product for the sale (including soft-deleted products).
+     */
+    public function product()
+    {
+        return $this->belongsTo(Product::class)->withTrashed()->withoutGlobalScope('user');
+    }
+
+    /**
+     * Boot the model and add global scope for multi-tenancy.
+     */
+    protected static function booted()
+    {
+        // Automatically scope queries to current user
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+
+        // Automatically set user_id on create
+        static::creating(function ($sale) {
+            if (auth()->check() && !$sale->user_id) {
+                $sale->user_id = auth()->id();
+            }
+        });
     }
 
     // Scopes

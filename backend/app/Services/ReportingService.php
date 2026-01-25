@@ -163,6 +163,9 @@ class ReportingService
             $todaySummary = $this->calculateDailySummary($today);
         }
 
+        // Payment method breakdown for today
+        $paymentBreakdown = $this->getPaymentMethodBreakdown($today, $today);
+
         // Product counts
         $totalProducts = Product::count();
         $activeProducts = Product::active()->count();
@@ -172,9 +175,31 @@ class ReportingService
             'todaySales' => (float) $todaySummary->total_sales,
             'todayProfit' => (float) $todaySummary->total_profit,
             'todaySalesCount' => $todaySummary->sales_count,
+            'cashSales' => (float) $paymentBreakdown['cash'],
+            'posSales' => (float) $paymentBreakdown['pos'],
+            'bankTransferSales' => (float) $paymentBreakdown['bank_transfer'],
             'lowStockCount' => $lowStockProducts,
             'totalProducts' => $totalProducts,
             'activeProducts' => $activeProducts,
+        ];
+    }
+
+    /**
+     * Get payment method breakdown for a date range
+     */
+    public function getPaymentMethodBreakdown(Carbon $startDate, Carbon $endDate): array
+    {
+        $sales = Sale::whereBetween('date', [$startDate, $endDate])
+            ->select('payment_method', DB::raw('SUM(total_amount) as total'))
+            ->groupBy('payment_method')
+            ->get()
+            ->pluck('total', 'payment_method')
+            ->toArray();
+
+        return [
+            'cash' => $sales['cash'] ?? 0,
+            'pos' => $sales['pos'] ?? 0,
+            'bank_transfer' => $sales['bank_transfer'] ?? 0,
         ];
     }
 
@@ -233,10 +258,21 @@ class ReportingService
             'end_date' => $endDate,
         ]);
 
+        // Payment method breakdown
+        $paymentBreakdown = $this->getPaymentMethodBreakdown(
+            Carbon::parse($startDate),
+            Carbon::parse($endDate)
+        );
+
         return [
             'totalSales' => (float) $totalSales,
             'totalProfit' => (float) $totalProfit,
             'salesCount' => $salesCount,
+            'paymentBreakdown' => [
+                'cash' => (float) $paymentBreakdown['cash'],
+                'pos' => (float) $paymentBreakdown['pos'],
+                'bankTransfer' => (float) $paymentBreakdown['bank_transfer'],
+            ],
             'chartData' => $chartData,
             'unitDistribution' => $unitDistribution,
             'topProducts' => array_slice($topProducts, 0, 5),

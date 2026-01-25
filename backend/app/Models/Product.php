@@ -11,6 +11,7 @@ class Product extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
+        'user_id',
         'name',
         'description',
         'category',
@@ -41,6 +42,15 @@ class Product extends Model
     ];
 
     // Relationships
+    
+    /**
+     * Get the user that owns the product.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
     public function stockLedgers()
     {
         return $this->hasMany(StockLedger::class);
@@ -54,6 +64,26 @@ class Product extends Model
     public function sales()
     {
         return $this->hasMany(Sale::class);
+    }
+
+    /**
+     * Boot the model and add global scope for multi-tenancy.
+     */
+    protected static function booted()
+    {
+        // Automatically scope queries to current user
+        static::addGlobalScope('user', function ($builder) {
+            if (auth()->check()) {
+                $builder->where('user_id', auth()->id());
+            }
+        });
+
+        // Automatically set user_id on create
+        static::creating(function ($product) {
+            if (auth()->check() && !$product->user_id) {
+                $product->user_id = auth()->id();
+            }
+        });
     }
 
     // Scopes

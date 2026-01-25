@@ -14,12 +14,15 @@ class StockSeeder extends Seeder
     {
         $today = Carbon::today();
         $yesterday = Carbon::yesterday();
+        $userId = \App\Models\User::first()->id;
         
-        $products = Product::all();
+        // Disable global scope to get all products for seeding
+        $products = Product::withoutGlobalScope('user')->get();
 
         foreach ($products as $product) {
             // Create yesterday's stock ledger
             StockLedger::create([
+                'user_id' => $userId,
                 'product_id' => $product->id,
                 'date' => $yesterday,
                 'opening_stock' => $product->current_stock * 0.7,
@@ -30,6 +33,7 @@ class StockSeeder extends Seeder
 
             // Create today's stock ledger
             StockLedger::create([
+                'user_id' => $userId,
                 'product_id' => $product->id,
                 'date' => $today,
                 'opening_stock' => $product->current_stock,
@@ -40,6 +44,7 @@ class StockSeeder extends Seeder
 
             // Create a stock addition record
             StockAddition::create([
+                'user_id' => $userId,
                 'product_id' => $product->id,
                 'quantity' => $product->current_stock * 0.35,
                 'cost_price' => $product->cost_price,

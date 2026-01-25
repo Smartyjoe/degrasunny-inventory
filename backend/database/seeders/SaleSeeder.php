@@ -18,10 +18,13 @@ class SaleSeeder extends Seeder
         $yesterday = Carbon::yesterday();
         $today = Carbon::today();
         
-        // Get products with retail enabled
-        $rice = Product::where('name', 'like', '%Rice%')->first();
-        $beans = Product::where('name', 'like', '%Beans%')->first();
-        $garri = Product::where('name', 'like', '%Garri%')->first();
+        // Get the first user
+        $userId = \App\Models\User::first()->id;
+        
+        // Get products with retail enabled (disable global scope for seeder)
+        $rice = Product::withoutGlobalScope('user')->where('name', 'like', '%Rice%')->first();
+        $beans = Product::withoutGlobalScope('user')->where('name', 'like', '%Beans%')->first();
+        $garri = Product::withoutGlobalScope('user')->where('name', 'like', '%Garri%')->first();
 
         $sales = [];
 
@@ -62,6 +65,8 @@ class SaleSeeder extends Seeder
     {
         $pricing = $pricingService->calculateProfit($product, $unit, $quantity);
 
+        $userId = \App\Models\User::first()->id;
+        
         $sale = Sale::create([
             'product_id' => $product->id,
             'quantity' => $quantity,
@@ -70,8 +75,9 @@ class SaleSeeder extends Seeder
             'total_amount' => $pricing['total_amount'],
             'cost_equivalent' => $pricing['cost_equivalent'],
             'profit' => $pricing['profit'],
+            'payment_method' => 'cash', // Default to cash for seeding
             'date' => $date,
-            'user_id' => 1,
+            'user_id' => $userId,
         ]);
 
         return [
@@ -85,9 +91,11 @@ class SaleSeeder extends Seeder
     private function createProfitSummaries(array $sales): void
     {
         $grouped = collect($sales)->groupBy('date');
+        $userId = \App\Models\User::first()->id;
 
         foreach ($grouped as $date => $daySales) {
             ProfitSummary::create([
+                'user_id' => $userId,
                 'date' => $date,
                 'total_sales' => $daySales->sum('total_amount'),
                 'total_cost' => $daySales->sum('cost_equivalent'),

@@ -47,8 +47,16 @@ class ProductController extends Controller
     /**
      * Get single product
      */
-    public function show(Product $product): JsonResponse
+    public function show(Request $request, Product $product): JsonResponse
     {
+        // Verify ownership (redundant with global scope but added for security)
+        if ($product->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found or access denied',
+            ], 404);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Product retrieved successfully',
@@ -77,6 +85,14 @@ class ProductController extends Controller
      */
     public function update(ProductRequest $request, Product $product): JsonResponse
     {
+        // Verify ownership
+        if ($product->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found or access denied',
+            ], 404);
+        }
+
         $oldValue = $product->toArray();
         
         $product->update($request->validated());
@@ -93,8 +109,24 @@ class ProductController extends Controller
     /**
      * Delete (soft delete) product
      */
-    public function destroy(Product $product): JsonResponse
+    public function destroy(Request $request, Product $product): JsonResponse
     {
+        // Verify ownership
+        if ($product->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found or access denied',
+            ], 404);
+        }
+
+        // Check if product has sales (prevent deletion if it breaks reports)
+        if ($product->sales()->count() > 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot delete product with existing sales records. Please deactivate instead.',
+            ], 422);
+        }
+
         AuditLog::log('deleted', 'product', $product->id, $product->toArray(), null);
 
         $product->update(['is_active' => false]);
@@ -112,6 +144,14 @@ class ProductController extends Controller
      */
     public function updateStock(Request $request, Product $product): JsonResponse
     {
+        // Verify ownership
+        if ($product->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product not found or access denied',
+            ], 404);
+        }
+
         $request->validate([
             'quantity' => 'required|numeric|min:0',
         ]);

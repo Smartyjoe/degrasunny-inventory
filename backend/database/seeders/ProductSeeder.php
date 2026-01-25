@@ -9,6 +9,9 @@ class ProductSeeder extends Seeder
 {
     public function run(): void
     {
+        // Get the first user to assign products to
+        $userId = \App\Models\User::first()->id;
+        
         $products = [
             [
                 'name' => 'Rice (50kg)',
@@ -88,7 +91,7 @@ class ProductSeeder extends Seeder
         ];
 
         foreach ($products as $product) {
-            Product::create($product);
+            Product::create(array_merge($product, ['user_id' => $userId]));
         }
 
         $this->command->info('Products seeded successfully!');

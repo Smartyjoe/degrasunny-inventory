@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\StockController;
 use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\StoreSettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -28,6 +29,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+    });
+
+    // Store Settings
+    Route::prefix('store-settings')->group(function () {
+        Route::get('/', [StoreSettingsController::class, 'index']);
+        Route::post('/', [StoreSettingsController::class, 'store']);
+        Route::put('/', [StoreSettingsController::class, 'update']);
     });
 
     // Products

@@ -46,8 +46,16 @@ class SalesController extends Controller
     /**
      * Get single sale
      */
-    public function show(Sale $sale): JsonResponse
+    public function show(Request $request, Sale $sale): JsonResponse
     {
+        // Verify ownership
+        if ($sale->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sale not found or access denied',
+            ], 404);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Sale retrieved successfully',
@@ -60,6 +68,7 @@ class SalesController extends Controller
                 'pricePerUnit' => (float) $sale->unit_price,
                 'totalAmount' => (float) $sale->total_amount,
                 'profit' => (float) $sale->profit,
+                'paymentMethod' => $sale->payment_method,
                 'date' => $sale->date->format('Y-m-d'),
                 'createdAt' => $sale->created_at->toIso8601String(),
             ],
@@ -86,6 +95,7 @@ class SalesController extends Controller
                     'pricePerUnit' => (float) $sale->unit_price,
                     'totalAmount' => (float) $sale->total_amount,
                     'profit' => (float) $sale->profit,
+                    'paymentMethod' => $sale->payment_method,
                     'date' => $sale->date->format('Y-m-d'),
                     'createdAt' => $sale->created_at->toIso8601String(),
                 ],
@@ -102,8 +112,16 @@ class SalesController extends Controller
     /**
      * Delete sale
      */
-    public function destroy(Sale $sale): JsonResponse
+    public function destroy(Request $request, Sale $sale): JsonResponse
     {
+        // Verify ownership
+        if ($sale->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sale not found or access denied',
+            ], 404);
+        }
+
         try {
             $this->salesService->deleteSale($sale);
 
