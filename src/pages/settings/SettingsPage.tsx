@@ -107,6 +107,15 @@ export default function SettingsPage() {
       setStoreSettings(updated)
       setLogoPreview(updated.storeLogo)
       setLogoFile(null)
+
+      // IMPORTANT: Update the user's business name in the auth store
+      if (user) {
+        setUser({
+          ...user,
+          businessName: storeName,
+        })
+      }
+
       setStoreMessage('Store settings saved successfully!')
       setTimeout(() => setStoreMessage(''), 3000)
     } catch (error: any) {

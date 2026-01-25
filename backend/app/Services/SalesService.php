@@ -78,26 +78,36 @@ class SalesService
 
     /**
      * Update daily profit summary
+     * Uses INSERT ... ON DUPLICATE KEY UPDATE for atomic operation
      */
     protected function updateProfitSummary(Carbon $date, Sale $sale): void
     {
-        $summary = ProfitSummary::firstOrCreate(
+        $userId = auth()->id();
+        $dateStr = $date->format('Y-m-d');
+        
+        // Use raw SQL for INSERT ... ON DUPLICATE KEY UPDATE
+        // This is atomic and handles both first sale and subsequent sales correctly
+        DB::statement(
+            "INSERT INTO profit_summaries 
+                (user_id, date, total_sales, total_cost, total_profit, sales_count, created_at, updated_at) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                total_sales = total_sales + VALUES(total_sales),
+                total_cost = total_cost + VALUES(total_cost),
+                total_profit = total_profit + VALUES(total_profit),
+                sales_count = sales_count + VALUES(sales_count),
+                updated_at = VALUES(updated_at)",
             [
-                'user_id' => auth()->id(),
-                'date' => $date,
-            ],
-            [
-                'total_sales' => 0,
-                'total_cost' => 0,
-                'total_profit' => 0,
-                'sales_count' => 0,
+                $userId,
+                $dateStr,
+                $sale->total_amount,
+                $sale->cost_equivalent,
+                $sale->profit,
+                1, // sales_count increment
+                now(),
+                now()
             ]
         );
-
-        $summary->increment('total_sales', $sale->total_amount);
-        $summary->increment('total_cost', $sale->cost_equivalent);
-        $summary->increment('total_profit', $sale->profit);
-        $summary->increment('sales_count');
     }
 
     /**

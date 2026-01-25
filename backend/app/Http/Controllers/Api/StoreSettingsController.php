@@ -128,6 +128,9 @@ class StoreSettingsController extends Controller
             $data
         );
 
+        // IMPORTANT: Also update the user's business_name to keep them in sync
+        $user->update(['business_name' => $request->store_name]);
+
         return response()->json([
             'success' => true,
             'message' => 'Store settings saved successfully',
@@ -175,6 +178,9 @@ class StoreSettingsController extends Controller
         }
 
         $storeSetting->update($data);
+
+        // IMPORTANT: Also update the user's business_name to keep them in sync
+        $user->update(['business_name' => $request->store_name]);
 
         return response()->json([
             'success' => true,
