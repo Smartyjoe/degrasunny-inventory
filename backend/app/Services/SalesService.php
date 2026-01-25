@@ -13,7 +13,8 @@ class SalesService
 {
     public function __construct(
         protected PricingService $pricingService,
-        protected StockService $stockService
+        protected StockService $stockService,
+        protected StockLedgerService $ledgerService
     ) {}
 
     /**
@@ -118,9 +119,11 @@ class SalesService
             // Restore stock
             $product->increment('current_stock', $bagsToRestore);
 
-            // Update stock ledger
-            $ledger = $this->stockService->initializeDailyStock($product, $date);
-            $ledger->decrement('stock_sold', $bagsToRestore);
+            // Update stock ledger (use centralized service)
+            $ledger = $this->ledgerService->getOrCreateDailyLedger($product, $date);
+            $ledger->stock_sold -= $bagsToRestore;
+            $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
+            $ledger->save();
 
             // Update profit summary
             $summary = ProfitSummary::where('user_id', auth()->id())
