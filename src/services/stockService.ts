@@ -1,7 +1,18 @@
 import api from './api'
 import { delay, mockDailyStock, mockStockAdditions } from './mockData'
 import { productService } from './productService'
-import { DailyStock, StockAddition, ApiResponse } from '@/types'
+import { StockAddition, ApiResponse } from '@/types'
+
+// Define DailyStock type locally (not in main types)
+type DailyStock = {
+  id: string
+  productId: string
+  date: string
+  openingStock: number
+  stockAdded: number
+  stockSold: number
+  closingStock: number
+}
 
 const USE_MOCK_DATA = false
 

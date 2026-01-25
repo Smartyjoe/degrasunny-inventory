@@ -30,10 +30,76 @@ class StoreSettingsController extends Controller
             'data' => [
                 'id' => (string) $storeSetting->id,
                 'storeName' => $storeSetting->store_name,
-                'storeLogo' => $storeSetting->store_logo,
+                'storeLogo' => $storeSetting->store_logo ? asset('storage/' . $storeSetting->store_logo) : null,
                 'createdAt' => $storeSetting->created_at->toIso8601String(),
                 'updatedAt' => $storeSetting->updated_at->toIso8601String(),
             ],
+        ]);
+    }
+
+    /**
+     * Upload store logo
+     */
+    public function uploadLogo(Request $request)
+    {
+        $request->validate([
+            'logo' => 'required|image|mimes:jpeg,png,jpg|max:2048', // 2MB max
+        ]);
+
+        $user = $request->user();
+        $storeSetting = $user->storeSetting;
+
+        if (!$storeSetting) {
+            $storeSetting = StoreSetting::create([
+                'user_id' => $user->id,
+                'store_name' => $user->business_name ?? $user->name . "'s Store",
+            ]);
+        }
+
+        // Delete old logo if exists
+        if ($storeSetting->store_logo && \Storage::disk('public')->exists($storeSetting->store_logo)) {
+            \Storage::disk('public')->delete($storeSetting->store_logo);
+        }
+
+        // Store new logo
+        $logoPath = $request->file('logo')->store('store_logos', 'public');
+        $storeSetting->update(['store_logo' => $logoPath]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logo uploaded successfully',
+            'data' => [
+                'storeLogo' => asset('storage/' . $logoPath),
+            ],
+        ]);
+    }
+
+    /**
+     * Delete store logo
+     */
+    public function deleteLogo(Request $request)
+    {
+        $user = $request->user();
+        $storeSetting = $user->storeSetting;
+
+        if (!$storeSetting || !$storeSetting->store_logo) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No logo to delete',
+            ], 404);
+        }
+
+        // Delete the file
+        if (\Storage::disk('public')->exists($storeSetting->store_logo)) {
+            \Storage::disk('public')->delete($storeSetting->store_logo);
+        }
+
+        $storeSetting->update(['store_logo' => null]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logo deleted successfully',
+            'data' => null,
         ]);
     }
 
@@ -44,12 +110,22 @@ class StoreSettingsController extends Controller
     {
         $user = $request->user();
 
+        $data = [
+            'store_name' => $request->store_name,
+        ];
+
+        // Handle logo upload
+        if ($request->hasFile('store_logo')) {
+            $logoPath = $request->file('store_logo')->store('store_logos', 'public');
+            $data['store_logo'] = $logoPath;
+        } elseif ($request->has('store_logo')) {
+            // If it's a base64 string or URL
+            $data['store_logo'] = $request->store_logo;
+        }
+
         $storeSetting = StoreSetting::updateOrCreate(
             ['user_id' => $user->id],
-            [
-                'store_name' => $request->store_name,
-                'store_logo' => $request->store_logo,
-            ]
+            $data
         );
 
         return response()->json([
@@ -58,7 +134,7 @@ class StoreSettingsController extends Controller
             'data' => [
                 'id' => (string) $storeSetting->id,
                 'storeName' => $storeSetting->store_name,
-                'storeLogo' => $storeSetting->store_logo,
+                'storeLogo' => $storeSetting->store_logo ? asset('storage/' . $storeSetting->store_logo) : null,
                 'createdAt' => $storeSetting->created_at->toIso8601String(),
                 'updatedAt' => $storeSetting->updated_at->toIso8601String(),
             ],
@@ -80,10 +156,25 @@ class StoreSettingsController extends Controller
             ], 404);
         }
 
-        $storeSetting->update([
+        $data = [
             'store_name' => $request->store_name,
-            'store_logo' => $request->store_logo,
-        ]);
+        ];
+
+        // Handle logo upload
+        if ($request->hasFile('store_logo')) {
+            // Delete old logo if exists
+            if ($storeSetting->store_logo && \Storage::disk('public')->exists($storeSetting->store_logo)) {
+                \Storage::disk('public')->delete($storeSetting->store_logo);
+            }
+            
+            $logoPath = $request->file('store_logo')->store('store_logos', 'public');
+            $data['store_logo'] = $logoPath;
+        } elseif ($request->has('store_logo') && $request->store_logo !== null) {
+            // If it's a base64 string or URL
+            $data['store_logo'] = $request->store_logo;
+        }
+
+        $storeSetting->update($data);
 
         return response()->json([
             'success' => true,
@@ -91,7 +182,7 @@ class StoreSettingsController extends Controller
             'data' => [
                 'id' => (string) $storeSetting->id,
                 'storeName' => $storeSetting->store_name,
-                'storeLogo' => $storeSetting->store_logo,
+                'storeLogo' => $storeSetting->store_logo ? asset('storage/' . $storeSetting->store_logo) : null,
                 'createdAt' => $storeSetting->created_at->toIso8601String(),
                 'updatedAt' => $storeSetting->updated_at->toIso8601String(),
             ],

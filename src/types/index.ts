@@ -105,6 +105,7 @@ export interface StockAddition {
   costPrice: number
   totalCost: number
   date: string
+  notes?: string
   createdAt: string
 }
 
@@ -166,6 +167,51 @@ export interface PaginatedResponse<T> {
     total: number
     totalPages: number
   }
+}
+
+// Store Settings Types
+export interface StoreSettings {
+  id: string
+  storeName: string
+  storeLogo: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface StoreSettingsFormData {
+  storeName: string
+  storeLogo?: string | null
+}
+
+// Receipt Types
+export interface Receipt {
+  receiptId: string
+  date: string
+  time: string
+  store: {
+    name: string
+    logo: string | null
+  }
+  sale: {
+    id: string
+    productName: string
+    quantity: number
+    unit: SaleUnit
+    pricePerUnit: number
+    totalAmount: number
+    paymentMethod: string
+  }
+}
+
+// Account Types
+export interface UpdateAccountData {
+  name: string
+}
+
+export interface ResetPasswordData {
+  current_password: string
+  new_password: string
+  new_password_confirmation: string
 }
 
 // Filter & Sorting Types

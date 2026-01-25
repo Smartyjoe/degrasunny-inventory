@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { stockService } from '@/services/stockService'
-import { DailyStock, StockAddition } from '@/types'
+import { StockAddition } from '@/types'
 import toast from 'react-hot-toast'
 
 export const useDailyStock = (date: string) => {
@@ -15,9 +15,9 @@ export const useUpdateDailyStock = () => {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<DailyStock> }) =>
+    mutationFn: ({ id, data }: { id: string; data: any }) =>
       stockService.updateDailyStock(id, data),
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['stock', 'daily'] })
       toast.success('Daily stock updated')
     },

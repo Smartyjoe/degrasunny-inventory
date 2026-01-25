@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\StoreSettingsController;
+use App\Http\Controllers\Api\ReceiptController;
 
 /*
 |--------------------------------------------------------------------------
@@ -29,6 +30,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('auth')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
+        Route::put('/account', [AuthController::class, 'updateAccount']);
+        Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     });
 
     // Store Settings
@@ -36,6 +39,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [StoreSettingsController::class, 'index']);
         Route::post('/', [StoreSettingsController::class, 'store']);
         Route::put('/', [StoreSettingsController::class, 'update']);
+        Route::post('/upload-logo', [StoreSettingsController::class, 'uploadLogo']);
+        Route::delete('/logo', [StoreSettingsController::class, 'deleteLogo']);
     });
 
     // Products
@@ -56,6 +61,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/', [SalesController::class, 'store']);
         Route::get('/{sale}', [SalesController::class, 'show']);
         Route::delete('/{sale}', [SalesController::class, 'destroy']);
+    });
+
+    // Receipts
+    Route::prefix('receipts')->group(function () {
+        Route::get('/{sale}', [ReceiptController::class, 'show']);
+        Route::get('/{sale}/download', [ReceiptController::class, 'download']);
     });
 
     // Dashboard

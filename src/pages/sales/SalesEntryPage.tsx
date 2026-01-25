@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useProducts } from '@/hooks/useProducts'
 import { useCreateSale, useTodaySales } from '@/hooks/useSales'
 import { saleSchema } from '@/utils/validation'
-import { SaleFormData, Product, SaleUnit, PaymentMethod } from '@/types'
+import { SaleFormData, Product, SaleUnit } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
@@ -12,7 +12,8 @@ import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { Loading } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
-import { ShoppingCart, Plus, TrendingUp } from 'lucide-react'
+import { ReceiptModal } from '@/components/receipt/ReceiptModal'
+import { ShoppingCart, Receipt } from 'lucide-react'
 import { formatCurrency, formatTime, calculateProfit } from '@/utils/format'
 
 const SalesEntryPage = () => {
@@ -21,6 +22,8 @@ const SalesEntryPage = () => {
   const createSale = useCreateSale()
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [receiptSaleId, setReceiptSaleId] = useState<string | null>(null)
+  const [showReceipt, setShowReceipt] = useState(false)
 
   const {
     register,
@@ -37,7 +40,7 @@ const SalesEntryPage = () => {
     },
   })
 
-  const productId = watch('productId')
+  // const productId = watch('productId')
   const unit = watch('unit') as SaleUnit
   const quantity = watch('quantity') || 0
 
@@ -83,12 +86,23 @@ const SalesEntryPage = () => {
   const onSubmit = async (data: SaleFormData) => {
     console.log('Form submitted with data:', data)
     try {
-      await createSale.mutateAsync(data)
+      const newSale = await createSale.mutateAsync(data)
       reset()
       setSelectedProduct(null)
+      
+      // Show receipt modal after successful sale
+      if (newSale?.id) {
+        setReceiptSaleId(newSale.id)
+        setShowReceipt(true)
+      }
     } catch (error) {
       // Error handled by mutation
     }
+  }
+
+  const handleViewReceipt = (saleId: string) => {
+    setReceiptSaleId(saleId)
+    setShowReceipt(true)
   }
 
   if (productsLoading) {
@@ -313,18 +327,29 @@ const SalesEntryPage = () => {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <Badge size="sm" variant="info">
-                          {sale.quantity} {sale.unit}
+                        <div className="flex gap-2 items-center">
+                          <Badge size="sm" variant="info">
+                            {sale.quantity} {sale.unit}
+                          </Badge>
                           <Badge
                             size="sm"
                             variant={sale.paymentMethod === 'cash' ? 'success' : sale.paymentMethod === 'pos' ? 'info' : 'default'}
                           >
                             {sale.paymentMethod === 'bank_transfer' ? 'Bank' : sale.paymentMethod.toUpperCase()}
                           </Badge>
-                        </Badge>
-                        <span className="font-semibold text-gray-900">
-                          {formatCurrency(sale.totalAmount)}
-                        </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900">
+                            {formatCurrency(sale.totalAmount)}
+                          </span>
+                          <button
+                            onClick={() => handleViewReceipt(sale.id)}
+                            className="text-blue-600 hover:text-blue-700"
+                            title="View Receipt"
+                          >
+                            <Receipt className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -334,6 +359,15 @@ const SalesEntryPage = () => {
           )}
         </div>
       </div>
+
+      {/* Receipt Modal */}
+      {receiptSaleId && (
+        <ReceiptModal
+          isOpen={showReceipt}
+          onClose={() => setShowReceipt(false)}
+          saleId={receiptSaleId}
+        />
+      )}
     </div>
   )
 }

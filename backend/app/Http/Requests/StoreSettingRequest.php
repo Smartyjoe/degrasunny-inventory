@@ -23,7 +23,7 @@ class StoreSettingRequest extends FormRequest
     {
         return [
             'store_name' => ['required', 'string', 'max:255'],
-            'store_logo' => ['nullable', 'string', 'max:500'],
+            'store_logo' => ['nullable', 'string', 'max:1000'], // Can be file path or base64
         ];
     }
 

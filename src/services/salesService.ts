@@ -93,6 +93,7 @@ export const salesService = {
         pricePerUnit,
         totalAmount,
         profit,
+        paymentMethod: data.paymentMethod,
         date: new Date().toISOString().split('T')[0],
         createdAt: new Date().toISOString(),
       }

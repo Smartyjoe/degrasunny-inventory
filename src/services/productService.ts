@@ -1,6 +1,6 @@
 import api from './api'
 import { delay, mockProducts } from './mockData'
-import { Product, ProductFormData, ApiResponse, PaginatedResponse } from '@/types'
+import { Product, ProductFormData, ApiResponse } from '@/types'
 
 const USE_MOCK_DATA = false
 

@@ -1,5 +1,5 @@
 import api from './api'
-import { delay, mockDashboardStats } from './mockData'
+import { delay } from './mockData'
 import { salesService } from './salesService'
 import { productService } from './productService'
 import { DashboardStats, ApiResponse } from '@/types'
@@ -20,10 +20,24 @@ export const dashboardService = {
       const todayProfitTotal = todaySales.reduce((sum, sale) => sum + sale.profit, 0)
       const lowStockProducts = products.filter(p => p.currentStock <= p.reorderLevel)
       
+      // Calculate payment method breakdown
+      const cashSales = todaySales
+        .filter(s => s.paymentMethod === 'cash')
+        .reduce((sum, sale) => sum + sale.totalAmount, 0)
+      const posSales = todaySales
+        .filter(s => s.paymentMethod === 'pos')
+        .reduce((sum, sale) => sum + sale.totalAmount, 0)
+      const bankTransferSales = todaySales
+        .filter(s => s.paymentMethod === 'bank_transfer')
+        .reduce((sum, sale) => sum + sale.totalAmount, 0)
+
       return {
         todaySales: todaySalesTotal,
         todayProfit: todayProfitTotal,
         todaySalesCount: todaySales.length,
+        cashSales,
+        posSales,
+        bankTransferSales,
         lowStockCount: lowStockProducts.length,
         totalProducts: products.length,
         activeProducts: products.filter(p => p.isActive).length,

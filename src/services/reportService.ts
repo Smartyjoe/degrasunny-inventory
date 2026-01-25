@@ -1,7 +1,34 @@
 import api from './api'
 import { delay } from './mockData'
 import { salesService } from './salesService'
-import { DailySummary, WeeklySummary, MonthlySummary, ProductPerformance, ApiResponse } from '@/types'
+import { ProductPerformance, ApiResponse } from '@/types'
+
+// Define summary types locally (not in main types)
+type DailySummary = {
+  date: string
+  totalSales: number
+  totalProfit: number
+  salesCount: number
+  topProduct: string
+}
+
+type WeeklySummary = {
+  weekStart: string
+  weekEnd: string
+  totalSales: number
+  totalProfit: number
+  salesCount: number
+  dailyBreakdown: any[]
+}
+
+type MonthlySummary = {
+  month: string
+  year: number
+  totalSales: number
+  totalProfit: number
+  salesCount: number
+  weeklyBreakdown: any[]
+}
 
 const USE_MOCK_DATA = false
 

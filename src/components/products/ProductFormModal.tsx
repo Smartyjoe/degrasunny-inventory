@@ -7,7 +7,6 @@ import { Modal, ModalFooter } from '@/components/ui/Modal'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import ToggleSwitch from '@/components/ui/ToggleSwitch'
-import { useState } from 'react'
 import { calculateProfit, calculateProfitMargin, formatCurrency } from '@/utils/format'
 
 interface ProductFormModalProps {

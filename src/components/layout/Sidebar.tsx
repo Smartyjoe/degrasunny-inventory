@@ -7,6 +7,7 @@ import {
   FileText,
   Box,
   PlusCircle,
+  Settings,
   X
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Daily Stock', href: '/daily-stock', icon: Box },
   { name: 'Add Stock', href: '/stock-addition', icon: PlusCircle },
   { name: 'Reports', href: '/reports', icon: FileText },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ]
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {

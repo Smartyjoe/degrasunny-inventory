@@ -1,7 +1,6 @@
 import { 
   Product, 
   Sale, 
-  DailyStock, 
   StockAddition,
   DashboardStats,
   User 
@@ -22,6 +21,7 @@ export const mockProducts: Product[] = [
     id: '1',
     name: 'Rice (50kg bag)',
     description: 'Premium quality long grain rice',
+    category: 'Grains',
     currentStock: 45,
     costPrice: 25000,
     sellingPrice: 30000,
@@ -39,6 +39,7 @@ export const mockProducts: Product[] = [
     id: '2',
     name: 'Beans (25kg bag)',
     description: 'Fresh brown beans',
+    category: 'Legumes',
     currentStock: 8,
     costPrice: 18000,
     sellingPrice: 22000,
@@ -56,6 +57,7 @@ export const mockProducts: Product[] = [
     id: '3',
     name: 'Garri (50kg bag)',
     description: 'White garri from Benin',
+    category: 'Grains',
     currentStock: 30,
     costPrice: 15000,
     sellingPrice: 18500,
@@ -73,6 +75,7 @@ export const mockProducts: Product[] = [
     id: '4',
     name: 'Groundnut Oil (25L keg)',
     description: 'Pure groundnut oil',
+    category: 'Oils',
     currentStock: 0,
     costPrice: 35000,
     sellingPrice: 42000,
@@ -86,6 +89,7 @@ export const mockProducts: Product[] = [
     id: '5',
     name: 'Palm Oil (25L keg)',
     description: 'Red palm oil',
+    category: 'Oils',
     currentStock: 22,
     costPrice: 28000,
     sellingPrice: 34000,
@@ -108,6 +112,7 @@ export const mockSales: Sale[] = [
     pricePerUnit: 30000,
     totalAmount: 90000,
     profit: 15000,
+    paymentMethod: 'cash',
     date: new Date().toISOString().split('T')[0],
     createdAt: new Date().toISOString(),
   },
@@ -120,6 +125,7 @@ export const mockSales: Sale[] = [
     pricePerUnit: 350,
     totalAmount: 8750,
     profit: 2500,
+    paymentMethod: 'pos',
     date: new Date().toISOString().split('T')[0],
     createdAt: new Date().toISOString(),
   },
@@ -132,13 +138,14 @@ export const mockSales: Sale[] = [
     pricePerUnit: 4800,
     totalAmount: 24000,
     profit: 6000,
+    paymentMethod: 'bank_transfer',
     date: new Date().toISOString().split('T')[0],
     createdAt: new Date().toISOString(),
   },
 ]
 
-// Mock Daily Stock
-export const mockDailyStock: DailyStock[] = [
+// Mock Daily Stock (type removed - using dynamic typing)
+export const mockDailyStock: any[] = [
   {
     id: '1',
     productId: '1',
@@ -173,11 +180,13 @@ export const mockStockAdditions: StockAddition[] = [
   {
     id: '1',
     productId: '3',
+    productName: 'Garri (50kg bag)',
     quantity: 5,
     costPrice: 15000,
     totalCost: 75000,
     date: new Date().toISOString().split('T')[0],
     notes: 'Restocked from main supplier',
+    createdAt: new Date().toISOString(),
   },
 ]
 
@@ -186,6 +195,9 @@ export const mockDashboardStats: DashboardStats = {
   todaySales: 122750,
   todayProfit: 23500,
   todaySalesCount: 3,
+  cashSales: 90000,
+  posSales: 8750,
+  bankTransferSales: 24000,
   lowStockCount: 2,
   totalProducts: 5,
   activeProducts: 5,

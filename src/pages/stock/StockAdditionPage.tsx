@@ -12,7 +12,7 @@ import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { Loading } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
-import { Plus, Package, TrendingUp } from 'lucide-react'
+import { Plus, Package } from 'lucide-react'
 import { formatCurrency, formatDate, getTodayDate } from '@/utils/format'
 
 type StockAdditionFormData = {
@@ -62,12 +62,15 @@ const StockAdditionPage = () => {
 
   const onSubmit = async (data: StockAdditionFormData) => {
     try {
+      const product = products?.find(p => p.id === data.productId)
       await addStock.mutateAsync({
         productId: data.productId,
+        productName: product?.name || 'Unknown Product',
         quantity: data.quantity,
         costPrice: data.costPrice,
         date: getTodayDate(),
         notes: data.notes,
+        createdAt: new Date().toISOString(),
       })
       reset()
       setSelectedProduct(null)

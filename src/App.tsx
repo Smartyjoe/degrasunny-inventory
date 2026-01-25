@@ -17,6 +17,7 @@ import DailyStockPage from './pages/stock/DailyStockPage'
 import SalesEntryPage from './pages/sales/SalesEntryPage'
 import StockAdditionPage from './pages/stock/StockAdditionPage'
 import ReportsPage from './pages/reports/ReportsPage'
+import SettingsPage from './pages/settings/SettingsPage'
 
 function App() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -49,6 +50,7 @@ function App() {
           <Route path="/sales" element={<SalesEntryPage />} />
           <Route path="/stock-addition" element={<StockAdditionPage />} />
           <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
 

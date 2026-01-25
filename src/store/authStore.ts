@@ -9,6 +9,7 @@ interface AuthState {
   setAuth: (user: User, token: string) => void
   clearAuth: () => void
   updateUser: (user: Partial<User>) => void
+  setUser: (user: User) => void
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -34,6 +35,11 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           user: state.user ? { ...state.user, ...updates } : null,
         })),
+
+      setUser: (user) => {
+        localStorage.setItem('user', JSON.stringify(user))
+        set({ user })
+      },
     }),
     {
       name: 'auth-storage',

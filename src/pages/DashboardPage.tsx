@@ -32,7 +32,7 @@ const DashboardPage = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loading size="lg" />
+        <Loading message="Loading dashboard..." />
       </div>
     )
   }

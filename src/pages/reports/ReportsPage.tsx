@@ -1,8 +1,6 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useSales } from '@/hooks/useSales'
-import { useProducts } from '@/hooks/useProducts'
 import { reportService } from '@/services/reportService'
-import { ProductPerformance } from '@/types'
 import toast from 'react-hot-toast'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
@@ -190,6 +188,64 @@ const ReportsPage = () => {
             </Card>
           </div>
 
+          {/* Payment Method Breakdown */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Method Breakdown</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-900">Cash</span>
+                    <DollarSign className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <p className="text-2xl font-bold text-blue-900">
+                    {formatCurrency(reportData.paymentBreakdown?.cash || 0)}
+                  </p>
+                  <p className="text-xs text-blue-700 mt-1">
+                    {reportData.totalSales > 0 
+                      ? `${((reportData.paymentBreakdown?.cash || 0) / reportData.totalSales * 100).toFixed(1)}%`
+                      : '0%'
+                    } of total
+                  </p>
+                </div>
+
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-green-900">POS/Card</span>
+                    <DollarSign className="w-5 h-5 text-green-600" />
+                  </div>
+                  <p className="text-2xl font-bold text-green-900">
+                    {formatCurrency(reportData.paymentBreakdown?.pos || 0)}
+                  </p>
+                  <p className="text-xs text-green-700 mt-1">
+                    {reportData.totalSales > 0 
+                      ? `${((reportData.paymentBreakdown?.pos || 0) / reportData.totalSales * 100).toFixed(1)}%`
+                      : '0%'
+                    } of total
+                  </p>
+                </div>
+
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-purple-900">Bank Transfer</span>
+                    <DollarSign className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <p className="text-2xl font-bold text-purple-900">
+                    {formatCurrency(reportData.paymentBreakdown?.bankTransfer || 0)}
+                  </p>
+                  <p className="text-xs text-purple-700 mt-1">
+                    {reportData.totalSales > 0 
+                      ? `${((reportData.paymentBreakdown?.bankTransfer || 0) / reportData.totalSales * 100).toFixed(1)}%`
+                      : '0%'
+                    } of total
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Sales & Profit Trend */}
@@ -287,7 +343,7 @@ const ReportsPage = () => {
                         outerRadius={100}
                         label={(entry: any) => `${entry.unit}: ${formatCurrency(entry.value)}`}
                       >
-                        {reportData.unitDistribution.map((entry: any, index: number) => (
+                        {reportData.unitDistribution.map((_entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
