@@ -1,6 +1,7 @@
 import { useDashboardStats } from '@/hooks/useDashboard'
 import { useProducts } from '@/hooks/useProducts'
 import { useTodaySales } from '@/hooks/useSales'
+import { useAIContext } from '@/hooks/useAIContext'
 import { 
   DollarSign, 
   TrendingUp, 
@@ -20,12 +21,15 @@ import { Loading } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { formatCurrency, formatTime, getStockStatus } from '@/utils/format'
 import { useNavigate } from 'react-router-dom'
+import AIInsightCard from '@/components/ai/AIInsightCard'
+import AIChatWidget from '@/components/ai/AIChatWidget'
 
 const DashboardPage = () => {
   const navigate = useNavigate()
   const { data: stats, isLoading: statsLoading } = useDashboardStats()
   const { data: lowStockProducts, isLoading: productsLoading } = useProducts({ lowStock: true })
   const { data: todaySales, isLoading: salesLoading } = useTodaySales()
+  const { contextReady } = useAIContext()
 
   const isLoading = statsLoading || productsLoading || salesLoading
 
@@ -43,6 +47,13 @@ const DashboardPage = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
         <p className="text-gray-600">Welcome back! Here&apos;s what&apos;s happening today.</p>
       </div>
+
+      {/* AI Daily Summary Insight */}
+      {contextReady && (
+        <div className="mb-6">
+          <AIInsightCard trigger="daily-summary" />
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -210,6 +221,13 @@ const DashboardPage = () => {
             </div>
           </CardHeader>
           <CardContent>
+            {/* AI Insight for Low Stock */}
+            {contextReady && lowStockProducts && lowStockProducts.length > 0 && (
+              <div className="mb-4">
+                <AIInsightCard trigger="low-stock" />
+              </div>
+            )}
+            
             {lowStockProducts && lowStockProducts.length > 0 ? (
               <div className="space-y-3">
                 {lowStockProducts.slice(0, 5).map((product) => {
@@ -290,6 +308,9 @@ const DashboardPage = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Chat Widget - Available on all pages */}
+      <AIChatWidget />
     </div>
   )
 }

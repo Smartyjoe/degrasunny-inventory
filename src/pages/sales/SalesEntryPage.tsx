@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useProducts } from '@/hooks/useProducts'
 import { useCreateSale, useTodaySales } from '@/hooks/useSales'
+import { useAIContext } from '@/hooks/useAIContext'
 import { saleSchema } from '@/utils/validation'
 import { SaleFormData, Product, SaleUnit } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -15,11 +16,13 @@ import EmptyState from '@/components/ui/EmptyState'
 import { ReceiptModal } from '@/components/receipt/ReceiptModal'
 import { ShoppingCart, Receipt } from 'lucide-react'
 import { formatCurrency, formatTime, calculateProfit } from '@/utils/format'
+import AIChatWidget from '@/components/ai/AIChatWidget'
 
 const SalesEntryPage = () => {
   const { data: products, isLoading: productsLoading } = useProducts({ isActive: true })
   const { data: todaySales } = useTodaySales()
   const createSale = useCreateSale()
+  useAIContext() // Keep AI context synced
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [receiptSaleId, setReceiptSaleId] = useState<string | null>(null)
@@ -368,6 +371,9 @@ const SalesEntryPage = () => {
           saleId={receiptSaleId}
         />
       )}
+
+      {/* AI Chat Widget */}
+      <AIChatWidget />
     </div>
   )
 }

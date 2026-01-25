@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSales } from '@/hooks/useSales'
+import { useAIContext } from '@/hooks/useAIContext'
 import { reportService } from '@/services/reportService'
 import toast from 'react-hot-toast'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
@@ -9,6 +10,8 @@ import Select from '@/components/ui/Select'
 import { Loading } from '@/components/ui/Spinner'
 import { Download, TrendingUp, DollarSign, ShoppingCart, Calendar } from 'lucide-react'
 import { formatCurrency, formatDate, getTodayDate } from '@/utils/format'
+import AIInsightCard from '@/components/ai/AIInsightCard'
+import AIChatWidget from '@/components/ai/AIChatWidget'
 import {
   LineChart,
   Line,
@@ -39,6 +42,7 @@ const ReportsPage = () => {
   const [reportSummary, setReportSummary] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const { data: sales } = useSales({ startDate, endDate })
+  const { contextReady } = useAIContext()
 
   // Fetch comprehensive report summary from backend
   useEffect(() => {
@@ -107,6 +111,11 @@ const ReportsPage = () => {
           Export CSV
         </Button>
       </div>
+
+      {/* AI Performance Insight */}
+      {contextReady && reportData && (
+        <AIInsightCard trigger="performance" />
+      )}
 
       {/* Date Range Filters */}
       <Card>
@@ -407,6 +416,14 @@ const ReportsPage = () => {
           </div>
         </>
       )}
+
+      {/* AI Payment Methods Insight */}
+      {contextReady && reportData?.paymentMethodBreakdown && (
+        <AIInsightCard trigger="payment-methods" />
+      )}
+
+      {/* AI Chat Widget */}
+      <AIChatWidget />
     </div>
   )
 }
