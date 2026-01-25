@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
 use App\Models\User;
+use App\Models\StoreSetting;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -57,6 +58,13 @@ class AuthController extends Controller
             'password' => Hash::make($request->password),
             'business_name' => $request->business_name,
             'role' => 'trader',
+        ]);
+
+        // Auto-create store settings with user's business name
+        StoreSetting::create([
+            'user_id' => $user->id,
+            'store_name' => $request->business_name ?? $request->name . "'s Store",
+            'store_logo' => null,
         ]);
 
         // Create token

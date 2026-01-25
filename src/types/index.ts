@@ -25,20 +25,24 @@ export interface RegisterData {
 }
 
 // Product Types
+export type SaleUnit = 'bag' | 'cup' | 'bucket'
+export type PaymentMethod = 'cash' | 'pos' | 'bank_transfer'
+
 export interface Product {
   id: string
   name: string
   description?: string
+  category: string
   currentStock: number
   costPrice: number
   sellingPrice: number
-  isRetailEnabled: boolean
+  reorderLevel: number
+  isActive: boolean
+  isRetailEnabled?: boolean
   cupsPerBag?: number
   bucketsPerBag?: number
   cupPrice?: number
   bucketPrice?: number
-  reorderLevel: number
-  isActive: boolean
   createdAt: string
   updatedAt: string
 }
@@ -46,40 +50,19 @@ export interface Product {
 export interface ProductFormData {
   name: string
   description?: string
+  category: string
   costPrice: number
   sellingPrice: number
-  isRetailEnabled: boolean
+  reorderLevel: number
+  isActive: boolean
+  isRetailEnabled?: boolean
   cupsPerBag?: number
   bucketsPerBag?: number
   cupPrice?: number
   bucketPrice?: number
-  reorderLevel: number
-}
-
-// Stock Types
-export interface DailyStock {
-  id: string
-  productId: string
-  date: string
-  openingStock: number
-  stockAdded: number
-  stockSold: number
-  closingStock: number
-}
-
-export interface StockAddition {
-  id: string
-  productId: string
-  quantity: number
-  costPrice: number
-  totalCost: number
-  date: string
-  notes?: string
 }
 
 // Sales Types
-export type SaleUnit = 'bag' | 'cup' | 'bucket'
-
 export interface Sale {
   id: string
   productId: string
@@ -89,6 +72,7 @@ export interface Sale {
   pricePerUnit: number
   totalAmount: number
   profit: number
+  paymentMethod: PaymentMethod
   date: string
   createdAt: string
 }
@@ -97,43 +81,64 @@ export interface SaleFormData {
   productId: string
   unit: SaleUnit
   quantity: number
+  paymentMethod: PaymentMethod
 }
 
-// Dashboard Stats Types
+// Stock Types
+export interface StockLedger {
+  id: string
+  productId: string
+  productName: string
+  date: string
+  openingStock: number
+  stockAdded: number
+  stockSold: number
+  closingStock: number
+  manuallyEdited: boolean
+}
+
+export interface StockAddition {
+  id: string
+  productId: string
+  productName: string
+  quantity: number
+  costPrice: number
+  totalCost: number
+  date: string
+  createdAt: string
+}
+
+// Dashboard Types
 export interface DashboardStats {
   todaySales: number
   todayProfit: number
   todaySalesCount: number
+  cashSales: number
+  posSales: number
+  bankTransferSales: number
   lowStockCount: number
   totalProducts: number
   activeProducts: number
 }
 
 // Report Types
-export interface DailySummary {
+export interface ReportSummary {
+  totalSales: number
+  totalProfit: number
+  salesCount: number
+  paymentBreakdown: {
+    cash: number
+    pos: number
+    bankTransfer: number
+  }
+  chartData: ChartDataPoint[]
+  topProducts: ProductPerformance[]
+}
+
+export interface ChartDataPoint {
   date: string
-  totalSales: number
-  totalProfit: number
-  salesCount: number
-  topProduct: string
-}
-
-export interface WeeklySummary {
-  weekStart: string
-  weekEnd: string
-  totalSales: number
-  totalProfit: number
-  salesCount: number
-  dailyBreakdown: DailySummary[]
-}
-
-export interface MonthlySummary {
-  month: string
-  year: number
-  totalSales: number
-  totalProfit: number
-  salesCount: number
-  weeklyBreakdown: WeeklySummary[]
+  sales: number
+  profit: number
 }
 
 export interface ProductPerformance {
@@ -143,12 +148,6 @@ export interface ProductPerformance {
   totalProfit: number
   quantitySold: number
   salesCount: number
-}
-
-export interface ChartData {
-  date: string
-  sales: number
-  profit: number
 }
 
 // API Response Types
