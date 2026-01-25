@@ -3,7 +3,6 @@ import {
   LayoutDashboard, 
   Package, 
   ShoppingCart, 
-  TrendingUp, 
   FileText,
   Box,
   PlusCircle,
@@ -11,6 +10,9 @@ import {
   X
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
+import { useAuthStore } from '@/store/authStore'
+import { useState, useEffect } from 'react'
+import { storeSettingsService } from '@/services/storeSettingsService'
 
 interface SidebarProps {
   isOpen: boolean
@@ -28,6 +30,35 @@ const navigation = [
 ]
 
 const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
+  const user = useAuthStore((state) => state.user)
+  const [storeLogo, setStoreLogo] = useState<string | null>(null)
+  const [storeName, setStoreName] = useState('Store Manager')
+
+  // Fetch store settings for logo
+  useEffect(() => {
+    const fetchStoreSettings = async () => {
+      try {
+        const settings = await storeSettingsService.getSettings()
+        if (settings && settings.storeLogo) {
+          setStoreLogo(settings.storeLogo)
+        }
+        if (settings && settings.storeName) {
+          setStoreName(settings.storeName)
+        }
+      } catch (error) {
+        // Use defaults if no settings found
+        console.log('Using default store settings')
+      }
+    }
+
+    if (user) {
+      fetchStoreSettings()
+    }
+  }, [user])
+
+  // Use business name if available, otherwise use fetched store name
+  const displayName = user?.businessName || storeName
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -48,11 +79,23 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-lg font-bold text-gray-900">Trader</span>
+            <div className="flex items-center gap-3">
+              {storeLogo ? (
+                <img 
+                  src={storeLogo} 
+                  alt="Store Logo" 
+                  className="w-8 h-8 rounded-lg object-cover"
+                />
+              ) : (
+                <img 
+                  src="/logo.png" 
+                  alt="Default Store Logo" 
+                  className="w-8 h-8 rounded-lg object-cover"
+                />
+              )}
+              <span className="text-lg font-bold text-gray-900 truncate">
+                {displayName}
+              </span>
             </div>
             <button
               onClick={onClose}
@@ -88,14 +131,16 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <div className="p-4 border-t border-gray-200">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                <span className="text-sm font-semibold text-primary-700">JT</span>
+                <span className="text-sm font-semibold text-primary-700">
+                  {user?.name?.charAt(0).toUpperCase() || 'U'}
+                </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
-                  John Trader
+                <p className="text-sm font-medium text-gray-900 truncate" title={user?.businessName || displayName}>
+                  {user?.businessName || displayName}
                 </p>
-                <p className="text-xs text-gray-500 truncate">
-                  trader@example.com
+                <p className="text-xs text-gray-500 truncate" title={user?.email}>
+                  {user?.email || 'user@example.com'}
                 </p>
               </div>
             </div>

@@ -184,6 +184,17 @@ export default function AIChatWidget() {
             <p className="text-xs text-gray-500 mt-2">
               AI responses are based on your store's data only.
             </p>
+            <p className="text-xs text-gray-400 mt-1 text-center">
+              Powered by{' '}
+              <a 
+                href="https://smatatech.com.ng" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:text-blue-700 font-medium hover:underline"
+              >
+                Smatatech Technologies
+              </a>
+            </p>
           </div>
         </div>
       )}
