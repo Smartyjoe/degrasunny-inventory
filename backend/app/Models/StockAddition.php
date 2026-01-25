@@ -29,7 +29,7 @@ class StockAddition extends Model
     // Relationships
     public function product()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     protected static function boot()

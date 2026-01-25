@@ -17,7 +17,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         {label && (
           <label
             htmlFor={inputId}
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+            className="block text-sm font-medium text-gray-700 mb-1.5"
           >
             {label}
           </label>
@@ -35,13 +35,12 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             id={inputId}
             className={cn(
               'w-full px-4 py-3 text-base border rounded-lg transition-colors focus-ring',
-              'bg-white dark:bg-gray-800 text-gray-900 dark:text-white',
-              'placeholder:text-gray-400 dark:placeholder:text-gray-500',
+              'placeholder:text-gray-400',
               icon && 'pl-10',
               error
                 ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500'
-                : 'border-gray-300 dark:border-gray-600 focus:border-primary-500 focus:ring-primary-500',
-              props.disabled && 'bg-gray-100 dark:bg-gray-900 cursor-not-allowed',
+                : 'border-gray-300 focus:border-primary-500 focus:ring-primary-500',
+              props.disabled && 'bg-gray-100 cursor-not-allowed',
               className
             )}
             {...props}
@@ -53,7 +52,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         
         {helperText && !error && (
-          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">{helperText}</p>
+          <p className="mt-1.5 text-sm text-gray-500">{helperText}</p>
         )}
       </div>
     )

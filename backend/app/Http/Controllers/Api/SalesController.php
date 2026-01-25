@@ -54,7 +54,7 @@ class SalesController extends Controller
             'data' => [
                 'id' => (string) $sale->id,
                 'productId' => (string) $sale->product_id,
-                'productName' => $sale->product->name,
+                'productName' => $sale->product ? $sale->product->name : 'Unknown Product',
                 'unit' => $sale->unit,
                 'quantity' => (float) $sale->quantity,
                 'pricePerUnit' => (float) $sale->unit_price,
@@ -80,7 +80,7 @@ class SalesController extends Controller
                 'data' => [
                     'id' => (string) $sale->id,
                     'productId' => (string) $sale->product_id,
-                    'productName' => $sale->product->name,
+                    'productName' => $sale->product ? $sale->product->name : 'Unknown Product',
                     'unit' => $sale->unit,
                     'quantity' => (float) $sale->quantity,
                     'pricePerUnit' => (float) $sale->unit_price,

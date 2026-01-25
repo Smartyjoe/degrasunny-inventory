@@ -12,7 +12,7 @@ export const mockUser: User = {
   id: '1',
   email: 'trader@example.com',
   name: 'John Trader',
-  businessName: 'De Grasunny Inventory',
+  businessName: 'John\'s Trading Store',
   createdAt: '2024-01-01T00:00:00Z',
 }
 

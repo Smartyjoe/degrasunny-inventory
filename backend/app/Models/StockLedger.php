@@ -31,7 +31,7 @@ class StockLedger extends Model
     // Relationships
     public function product()
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     // Business Logic

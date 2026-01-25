@@ -34,7 +34,7 @@ class ReportingService
             'totalSales' => (float) $summary->total_sales,
             'totalProfit' => (float) $summary->total_profit,
             'salesCount' => $summary->sales_count,
-            'topProduct' => $topProduct ? $topProduct->product->name : 'N/A',
+            'topProduct' => ($topProduct && $topProduct->product) ? $topProduct->product->name : 'N/A',
         ];
     }
 
@@ -140,7 +140,7 @@ class ReportingService
         return $query->get()->map(function ($item) {
             return [
                 'productId' => (string) $item->product_id,
-                'productName' => $item->product->name,
+                'productName' => $item->product ? $item->product->name : 'Unknown Product',
                 'totalSales' => (float) $item->total_sales,
                 'totalProfit' => (float) $item->total_profit,
                 'quantitySold' => (float) $item->quantity_sold,
