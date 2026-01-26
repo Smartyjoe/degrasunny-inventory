@@ -26,10 +26,6 @@ const LoginPage = () => {
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: 'trader@example.com',
-      password: 'password',
-    },
   })
 
   const onSubmit = async (data: LoginFormData) => {
@@ -109,13 +105,6 @@ const LoginPage = () => {
         >
           Sign up
         </Link>
-      </div>
-
-      {/* Demo Credentials */}
-      <div className="mt-6 p-4 bg-primary-50 rounded-lg">
-        <p className="text-xs font-medium text-primary-900 mb-2">Demo Credentials:</p>
-        <p className="text-xs text-primary-700">Email: trader@example.com</p>
-        <p className="text-xs text-primary-700">Password: password</p>
       </div>
     </div>
   )

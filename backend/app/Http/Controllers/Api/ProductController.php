@@ -180,6 +180,7 @@ class ProductController extends Controller
             'id' => (string) $product->id,
             'name' => $product->name,
             'description' => $product->description,
+            'category' => $product->category, // Issue 2 Fix: Include category in response
             'currentStock' => (float) $product->current_stock,
             'costPrice' => (float) $product->cost_price,
             'sellingPrice' => (float) $product->selling_price,

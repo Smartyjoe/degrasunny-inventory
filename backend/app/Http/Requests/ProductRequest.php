@@ -51,6 +51,7 @@ class ProductRequest extends FormRequest
         $rules = [
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'category' => 'nullable|string|max:255', // Issue 2 Fix: Add category validation
             'cost_price' => 'required|numeric|min:0',
             'selling_price' => 'required|numeric|min:0',
             'is_retail_enabled' => 'boolean',
@@ -61,11 +62,12 @@ class ProductRequest extends FormRequest
             'reorder_level' => 'required|numeric|min:0',
         ];
 
-        // Unique name validation (except for current product on update)
+        // Unique name validation scoped to current user (per-trader isolation)
+        // Issue 1 Fix: Use scoped uniqueness instead of global uniqueness
         if ($this->isMethod('POST')) {
-            $rules['name'] .= '|unique:products,name';
+            $rules['name'] .= '|unique:products,name,NULL,id,user_id,' . auth()->id();
         } elseif ($this->isMethod('PUT') || $this->isMethod('PATCH')) {
-            $rules['name'] .= '|unique:products,name,' . $this->route('product')->id;
+            $rules['name'] .= '|unique:products,name,' . $this->route('product')->id . ',id,user_id,' . auth()->id();
         }
 
         return $rules;
