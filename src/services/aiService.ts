@@ -109,11 +109,11 @@ You are advisory only - you cannot perform actions, only provide guidance.`
    * Call OpenRouter API with model fallback
    */
   private async callOpenRouter(messages: AIMessage[]): Promise<AIResponse> {
-    if (!OPENROUTER_API_KEY) {
+    if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === 'your_openrouter_api_key_here') {
       return {
         success: false,
         message: '',
-        error: 'AI service not configured. Please add VITE_OPENROUTER_API_KEY to your environment.',
+        error: 'AI service not configured. Please add a valid VITE_OPENROUTER_API_KEY to your .env file. Get your free API key from https://openrouter.ai/keys',
       }
     }
 

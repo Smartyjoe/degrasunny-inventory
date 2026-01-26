@@ -30,6 +30,7 @@ const ProductFormModal = ({ product, onClose }: ProductFormModalProps) => {
       ? {
           name: product.name,
           description: product.description,
+          category: product.category,
           costPrice: product.costPrice,
           sellingPrice: product.sellingPrice,
           isRetailEnabled: product.isRetailEnabled,
@@ -98,6 +99,13 @@ const ProductFormModal = ({ product, onClose }: ProductFormModalProps) => {
           placeholder="Brief product description"
           error={errors.description?.message}
           {...register('description')}
+        />
+
+        <Input
+          label="Category"
+          placeholder="e.g., Grains, Oils, Legumes"
+          error={errors.category?.message}
+          {...register('category')}
         />
 
         {/* Pricing */}
