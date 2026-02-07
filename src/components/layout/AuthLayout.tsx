@@ -3,9 +3,11 @@ import { ReactNode } from 'react'
 
 interface AuthLayoutProps {
   children?: ReactNode
+  title?: string
+  subtitle?: string
 }
 
-const AuthLayout = ({ children }: AuthLayoutProps) => {
+const AuthLayout = ({ children, title, subtitle }: AuthLayoutProps) => {
   const currentYear = new Date().getFullYear()
 
   return (
@@ -26,6 +28,14 @@ const AuthLayout = ({ children }: AuthLayoutProps) => {
 
         {/* Auth Content */}
         <div className="bg-white rounded-lg shadow-xl p-8">
+          {title ? (
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
+              {subtitle ? (
+                <p className="text-sm text-gray-600 mt-1">{subtitle}</p>
+              ) : null}
+            </div>
+          ) : null}
           {children ?? <Outlet />}
         </div>
 

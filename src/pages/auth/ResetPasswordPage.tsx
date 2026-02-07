@@ -13,7 +13,7 @@ export default function ResetPasswordPage() {
   const location = useLocation()
 
   const [step, setStep] = useState<'verify' | 'reset'>('verify')
-  const [email, setEmail] = useState((location.state as { email?: string })?.email || '')
+  const email = (location.state as { email?: string })?.email || ''
   const [otp, setOtp] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
