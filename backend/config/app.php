@@ -16,6 +16,20 @@ return [
     'key' => env('APP_KEY'),
     'cipher' => 'AES-256-CBC',
 
+    /*
+    |--------------------------------------------------------------------------
+    | OTP Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for OTP (One-Time Password) functionality used in
+    | email verification and password reset flows.
+    |
+    */
+
+    'otp_length' => env('OTP_LENGTH', 6),
+    'otp_expiry_minutes' => env('OTP_EXPIRY_MINUTES', 10),
+    'otp_max_attempts' => env('OTP_MAX_ATTEMPTS', 5),
+
     'maintenance' => [
         'driver' => 'file',
     ],

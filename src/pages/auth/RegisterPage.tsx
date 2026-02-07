@@ -37,7 +37,13 @@ const RegisterPage = () => {
       const response = await authService.register(data)
       setAuth(response.user, response.token)
       toast.success('Account created successfully!')
-      navigate('/dashboard')
+      
+      // Redirect to email verification if required
+      if (response.emailVerificationRequired) {
+        navigate('/auth/verify-email', { state: { email: data.email } })
+      } else {
+        navigate('/dashboard')
+      }
     } catch (error: any) {
       toast.error(error.message || 'Registration failed')
     } finally {

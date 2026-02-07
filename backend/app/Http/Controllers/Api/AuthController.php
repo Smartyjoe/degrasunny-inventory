@@ -5,16 +5,32 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use App\Http\Requests\SendEmailVerificationRequest;
+use App\Http\Requests\VerifyEmailRequest;
+use App\Http\Requests\SendPasswordResetOTPRequest;
+use App\Http\Requests\VerifyPasswordResetOTPRequest;
+use App\Http\Requests\ResetPasswordWithOTPRequest;
 use App\Models\User;
 use App\Models\StoreSetting;
+use App\Services\OTPService;
+use App\Services\BrevoEmailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
+    protected $otpService;
+    protected $brevoService;
+
+    public function __construct(OTPService $otpService, BrevoEmailService $brevoService)
+    {
+        $this->otpService = $otpService;
+        $this->brevoService = $brevoService;
+    }
     /**
      * Login user
      */
@@ -67,21 +83,31 @@ class AuthController extends Controller
             'store_logo' => null,
         ]);
 
+        // Generate and send email verification OTP
+        try {
+            $otp = $this->otpService->generateEmailVerificationOTP($user);
+            $this->brevoService->sendEmailVerificationOTP($user->email, $user->name, $otp);
+        } catch (\Exception $e) {
+            Log::error('Failed to send verification email', ['error' => $e->getMessage()]);
+        }
+
         // Create token
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'message' => 'Registration successful',
+            'message' => 'Registration successful. Please verify your email.',
             'data' => [
                 'user' => [
                     'id' => (string) $user->id,
                     'name' => $user->name,
                     'email' => $user->email,
                     'businessName' => $user->business_name,
+                    'emailVerified' => $user->hasVerifiedEmail(),
                     'createdAt' => $user->created_at->toIso8601String(),
                 ],
                 'token' => $token,
+                'emailVerificationRequired' => true,
             ],
         ], 201);
     }
@@ -217,5 +243,267 @@ class AuthController extends Controller
                 'token' => $token,
             ],
         ]);
+    }
+
+    /**
+     * Send email verification OTP
+     */
+    public function sendEmailVerificationOTP(SendEmailVerificationRequest $request): JsonResponse
+    {
+        try {
+            $user = User::where('email', $request->email)->first();
+
+            if ($user->hasVerifiedEmail()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Email is already verified.',
+                ], 400);
+            }
+
+            $canRequest = $this->otpService->canRequestOTP($user->email, 'email_verification');
+            if (!$canRequest['can_request']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $canRequest['message'],
+                    'data' => ['waitTime' => $canRequest['wait_time']],
+                ], 429);
+            }
+
+            $otp = $this->otpService->generateEmailVerificationOTP($user);
+            $result = $this->brevoService->sendEmailVerificationOTP($user->email, $user->name, $otp);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send verification email. Please try again.',
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Verification code sent to your email.',
+                'data' => ['expiresInMinutes' => config('app.otp_expiry_minutes', 10)],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Send email verification OTP failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send verification code',
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify email with OTP
+     */
+    public function verifyEmail(VerifyEmailRequest $request): JsonResponse
+    {
+        try {
+            $user = User::where('email', $request->email)->first();
+
+            $result = $this->otpService->validateEmailVerificationOTP($user, $request->otp);
+
+            if (!$result['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                ], 400);
+            }
+
+            // Send welcome email
+            try {
+                $this->brevoService->sendWelcomeEmail($user->email, $user->name);
+            } catch (\Exception $e) {
+                Log::error('Failed to send welcome email', ['error' => $e->getMessage()]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'],
+                'data' => [
+                    'user' => [
+                        'id' => (string) $user->id,
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'businessName' => $user->business_name,
+                        'emailVerified' => $user->hasVerifiedEmail(),
+                        'createdAt' => $user->created_at->toIso8601String(),
+                    ],
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Email verification failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Email verification failed',
+            ], 500);
+        }
+    }
+
+    /**
+     * Send password reset OTP
+     */
+    public function sendPasswordResetOTP(SendPasswordResetOTPRequest $request): JsonResponse
+    {
+        try {
+            $user = User::where('email', $request->email)->first();
+
+            $canRequest = $this->otpService->canRequestOTP($user->email, 'password_reset');
+            if (!$canRequest['can_request']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $canRequest['message'],
+                    'data' => ['waitTime' => $canRequest['wait_time']],
+                ], 429);
+            }
+
+            $otp = $this->otpService->generatePasswordResetOTP($user);
+            $result = $this->brevoService->sendPasswordResetOTP($user->email, $user->name, $otp);
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send password reset email. Please try again.',
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password reset code sent to your email.',
+                'data' => ['expiresInMinutes' => config('app.otp_expiry_minutes', 10)],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Send password reset OTP failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to send password reset code',
+            ], 500);
+        }
+    }
+
+    /**
+     * Verify password reset OTP
+     */
+    public function verifyPasswordResetOTP(VerifyPasswordResetOTPRequest $request): JsonResponse
+    {
+        try {
+            $user = User::where('email', $request->email)->first();
+
+            $result = $this->otpService->validatePasswordResetOTP($user, $request->otp);
+
+            if (!$result['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                ], 400);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => $result['message'],
+                'data' => ['verified' => true],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Password reset OTP verification failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'OTP verification failed',
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset password with verified OTP
+     */
+    public function resetPasswordWithOTP(ResetPasswordWithOTPRequest $request): JsonResponse
+    {
+        try {
+            $user = User::where('email', $request->email)->first();
+
+            $result = $this->otpService->validatePasswordResetOTP($user, $request->otp);
+
+            if (!$result['valid']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $result['message'],
+                ], 400);
+            }
+
+            $user->update([
+                'password' => Hash::make($request->password),
+            ]);
+
+            $this->otpService->clearPasswordResetOTP($user);
+            $user->tokens()->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Password reset successfully. Please login with your new password.',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Password reset failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Password reset failed',
+            ], 500);
+        }
+    }
+
+    /**
+     * Resend OTP
+     */
+    public function resendOTP(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email|exists:users,email',
+                'type' => 'required|in:email_verification,password_reset',
+            ]);
+
+            $user = User::where('email', $request->email)->first();
+
+            $canRequest = $this->otpService->canRequestOTP($user->email, $request->type);
+            if (!$canRequest['can_request']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $canRequest['message'],
+                    'data' => ['waitTime' => $canRequest['wait_time']],
+                ], 429);
+            }
+
+            if ($request->type === 'email_verification') {
+                if ($user->hasVerifiedEmail()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Email is already verified.',
+                    ], 400);
+                }
+
+                $otp = $this->otpService->generateEmailVerificationOTP($user);
+                $result = $this->brevoService->sendEmailVerificationOTP($user->email, $user->name, $otp);
+            } else {
+                $otp = $this->otpService->generatePasswordResetOTP($user);
+                $result = $this->brevoService->sendPasswordResetOTP($user->email, $user->name, $otp);
+            }
+
+            if (!$result['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to resend code. Please try again.',
+                ], 500);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'New code sent to your email.',
+                'data' => ['expiresInMinutes' => config('app.otp_expiry_minutes', 10)],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Resend OTP failed', ['error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to resend code',
+            ], 500);
+        }
     }
 }

@@ -4,12 +4,46 @@ export interface User {
   email: string
   name: string
   businessName?: string
+  emailVerified?: boolean
   createdAt: string
 }
 
 export interface AuthResponse {
   user: User
   token: string
+  emailVerificationRequired?: boolean
+}
+
+export interface OTPVerificationRequest {
+  email: string
+  otp: string
+}
+
+export interface OTPRequest {
+  email: string
+}
+
+export interface ResendOTPRequest {
+  email: string
+  type: 'email_verification' | 'password_reset'
+}
+
+export interface OTPResponse {
+  message: string
+  expiresInMinutes?: number
+  waitTime?: number
+}
+
+export interface VerifyEmailResponse {
+  message: string
+  user: User
+}
+
+export interface ResetPasswordWithOTPRequest {
+  email: string
+  otp: string
+  password: string
+  password_confirmation: string
 }
 
 export interface LoginCredentials {

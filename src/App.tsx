@@ -8,6 +8,8 @@ import ProtectedRoute from './components/auth/ProtectedRoute'
 import LoginPage from './pages/auth/LoginPage'
 import RegisterPage from './pages/auth/RegisterPage'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+import VerifyEmailPage from './pages/auth/VerifyEmailPage'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 
 // Main Pages
 import DashboardPage from './pages/DashboardPage'
@@ -40,6 +42,10 @@ function App() {
           element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <ForgotPasswordPage />}
         />
       </Route>
+
+      {/* Auth verification routes - accessible without full authentication */}
+      <Route path="/auth/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/auth/reset-password" element={<ResetPasswordPage />} />
 
       {/* Protected Routes */}
       <Route element={<ProtectedRoute />}>

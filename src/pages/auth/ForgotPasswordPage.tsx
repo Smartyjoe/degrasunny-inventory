@@ -16,7 +16,6 @@ type ForgotPasswordFormData = {
 const ForgotPasswordPage = () => {
   const navigate = useNavigate()
   const [isLoading, setIsLoading] = useState(false)
-  const [emailSent, setEmailSent] = useState(false)
 
   const {
     register,
@@ -29,32 +28,16 @@ const ForgotPasswordPage = () => {
   const onSubmit = async (data: ForgotPasswordFormData) => {
     setIsLoading(true)
     try {
-      await authService.forgotPassword(data.email)
-      setEmailSent(true)
-      toast.success('Password reset link sent to your email')
+      await authService.sendPasswordResetOTP({ email: data.email })
+      toast.success('Password reset code sent to your email')
+      navigate('/auth/reset-password', { state: { email: data.email } })
     } catch (error: any) {
-      toast.error(error.message || 'Failed to send reset link')
+      toast.error(error.message || 'Failed to send reset code')
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (emailSent) {
-    return (
-      <div className="text-center">
-        <div className="w-16 h-16 bg-success-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Mail className="w-8 h-8 text-success-600" />
-        </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">Check your email</h2>
-        <p className="text-gray-600 mb-6">
-          We've sent a password reset link to your email address.
-        </p>
-        <Button onClick={() => navigate('/login')} fullWidth>
-          Back to Login
-        </Button>
-      </div>
-    )
-  }
 
   return (
     <div>

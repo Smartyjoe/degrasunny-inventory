@@ -27,6 +27,12 @@ class Kernel extends ConsoleKernel
             ->timezone('UTC') // Adjust to your timezone (e.g., 'Africa/Lagos', 'America/New_York')
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Cleanup expired OTP codes daily at 2 AM
+        $schedule->command('otp:cleanup')
+            ->dailyAt('02:00')
+            ->timezone('UTC')
+            ->withoutOverlapping();
     }
 
     /**

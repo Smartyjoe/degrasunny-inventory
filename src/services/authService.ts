@@ -4,7 +4,13 @@ import {
   AuthResponse, 
   LoginCredentials, 
   RegisterData, 
-  ApiResponse 
+  ApiResponse,
+  OTPRequest,
+  OTPVerificationRequest,
+  OTPResponse,
+  VerifyEmailResponse,
+  ResendOTPRequest,
+  ResetPasswordWithOTPRequest
 } from '@/types'
 
 // Use mock data for development
@@ -87,6 +93,89 @@ export const authService = {
     }
     
     const response = await api.get<ApiResponse<typeof mockUser>>('/auth/me')
+    return response.data.data
+  },
+
+  // Send email verification OTP
+  sendEmailVerificationOTP: async (data: OTPRequest): Promise<OTPResponse> => {
+    if (USE_MOCK_DATA) {
+      await delay(800)
+      return {
+        message: 'Verification code sent to your email.',
+        expiresInMinutes: 10,
+      }
+    }
+
+    const response = await api.post<ApiResponse<OTPResponse>>('/auth/send-email-verification-otp', data)
+    return response.data.data
+  },
+
+  // Verify email with OTP
+  verifyEmail: async (data: OTPVerificationRequest): Promise<VerifyEmailResponse> => {
+    if (USE_MOCK_DATA) {
+      await delay(800)
+      return {
+        message: 'Email verified successfully.',
+        user: { ...mockUser, emailVerified: true },
+      }
+    }
+
+    const response = await api.post<ApiResponse<VerifyEmailResponse>>('/auth/verify-email', data)
+    return response.data.data
+  },
+
+  // Send password reset OTP
+  sendPasswordResetOTP: async (data: OTPRequest): Promise<OTPResponse> => {
+    if (USE_MOCK_DATA) {
+      await delay(800)
+      return {
+        message: 'Password reset code sent to your email.',
+        expiresInMinutes: 10,
+      }
+    }
+
+    const response = await api.post<ApiResponse<OTPResponse>>('/auth/send-password-reset-otp', data)
+    return response.data.data
+  },
+
+  // Verify password reset OTP
+  verifyPasswordResetOTP: async (data: OTPVerificationRequest): Promise<{ message: string; verified: boolean }> => {
+    if (USE_MOCK_DATA) {
+      await delay(800)
+      return {
+        message: 'OTP verified successfully.',
+        verified: true,
+      }
+    }
+
+    const response = await api.post<ApiResponse<{ message: string; verified: boolean }>>('/auth/verify-password-reset-otp', data)
+    return response.data.data
+  },
+
+  // Reset password with OTP
+  resetPasswordWithOTP: async (data: ResetPasswordWithOTPRequest): Promise<{ message: string }> => {
+    if (USE_MOCK_DATA) {
+      await delay(800)
+      return {
+        message: 'Password reset successfully. Please login with your new password.',
+      }
+    }
+
+    const response = await api.post<ApiResponse<{ message: string }>>('/auth/reset-password-with-otp', data)
+    return response.data.data
+  },
+
+  // Resend OTP
+  resendOTP: async (data: ResendOTPRequest): Promise<OTPResponse> => {
+    if (USE_MOCK_DATA) {
+      await delay(800)
+      return {
+        message: 'New code sent to your email.',
+        expiresInMinutes: 10,
+      }
+    }
+
+    const response = await api.post<ApiResponse<OTPResponse>>('/auth/resend-otp', data)
     return response.data.data
   },
 }

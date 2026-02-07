@@ -17,15 +17,26 @@ class User extends Authenticatable
         'password',
         'business_name',
         'role',
+        'email_verified_at',
+        'email_verification_otp',
+        'email_verification_otp_expires_at',
+        'email_verification_attempts',
+        'password_reset_otp',
+        'password_reset_otp_expires_at',
+        'password_reset_attempts',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
+        'email_verification_otp',
+        'password_reset_otp',
     ];
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'email_verification_otp_expires_at' => 'datetime',
+        'password_reset_otp_expires_at' => 'datetime',
         'password' => 'hashed',
     ];
 
@@ -85,5 +96,56 @@ class User extends Authenticatable
     public function auditLogs()
     {
         return $this->hasMany(AuditLog::class);
+    }
+
+    /**
+     * Get all email verifications for the user.
+     */
+    public function emailVerifications()
+    {
+        return $this->hasMany(EmailVerification::class);
+    }
+
+    // Email Verification Methods
+
+    /**
+     * Check if user's email is verified
+     */
+    public function hasVerifiedEmail(): bool
+    {
+        return !is_null($this->email_verified_at);
+    }
+
+    /**
+     * Mark the user's email as verified
+     */
+    public function markEmailAsVerified(): bool
+    {
+        return $this->forceFill([
+            'email_verified_at' => now(),
+            'email_verification_otp' => null,
+            'email_verification_otp_expires_at' => null,
+            'email_verification_attempts' => 0,
+        ])->save();
+    }
+
+    /**
+     * Check if email verification OTP is valid and not expired
+     */
+    public function hasValidEmailVerificationOTP(): bool
+    {
+        return !is_null($this->email_verification_otp) 
+            && !is_null($this->email_verification_otp_expires_at)
+            && now()->isBefore($this->email_verification_otp_expires_at);
+    }
+
+    /**
+     * Check if password reset OTP is valid and not expired
+     */
+    public function hasValidPasswordResetOTP(): bool
+    {
+        return !is_null($this->password_reset_otp) 
+            && !is_null($this->password_reset_otp_expires_at)
+            && now()->isBefore($this->password_reset_otp_expires_at);
     }
 }
