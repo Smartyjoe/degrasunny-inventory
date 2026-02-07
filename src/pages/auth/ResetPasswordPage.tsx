@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { toast } from 'sonner'
+import toast from 'react-hot-toast'
 import AuthLayout from '@/components/layout/AuthLayout'
 import OTPInput from '@/components/auth/OTPInput'
 import ResendOTPButton from '@/components/auth/ResendOTPButton'
