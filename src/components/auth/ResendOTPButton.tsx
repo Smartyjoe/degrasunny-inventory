@@ -8,6 +8,7 @@ interface ResendOTPButtonProps {
   variant?: 'button' | 'link'
 }
 
+//debuged to find why the resend button is not working, the issue was that the onResend function was not being called when the button was clicked. This was because the handleResend function was not being passed to the onClick prop of the button. I have fixed this issue by passing the handleResend function to the onClick prop of the button.
 export default function ResendOTPButton({ 
   onResend, 
   cooldownSeconds = 60,
