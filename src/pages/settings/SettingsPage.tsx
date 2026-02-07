@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card } from '../../components/ui/Card'
 import Input from '../../components/ui/Input'
 import Button from '../../components/ui/Button'
@@ -10,6 +11,7 @@ import { StoreSettings } from '../../types'
 
 export default function SettingsPage() {
   const { user, setUser } = useAuthStore()
+  const queryClient = useQueryClient()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [storeSettings, setStoreSettings] = useState<StoreSettings | null>(null)
@@ -115,6 +117,14 @@ export default function SettingsPage() {
           businessName: storeName,
         })
       }
+
+      // Invalidate store settings cache to refresh sidebar
+      queryClient.invalidateQueries({ queryKey: ['store-settings'] })
+      
+      // Trigger sidebar refresh via custom event
+      window.dispatchEvent(new CustomEvent('store-logo-updated', {
+        detail: { logoUrl: updated.storeLogo }
+      }))
 
       setStoreMessage('Store settings saved successfully!')
       setTimeout(() => setStoreMessage(''), 3000)

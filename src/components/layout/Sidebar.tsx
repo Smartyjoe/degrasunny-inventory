@@ -35,6 +35,7 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const user = useAuthStore((state) => state.user)
   const [storeLogo, setStoreLogo] = useState<string | null>(null)
   const [storeName, setStoreName] = useState('Store Manager')
+  const [refreshKey, setRefreshKey] = useState(0)
 
   // Fetch store settings for logo
   useEffect(() => {
@@ -56,7 +57,29 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
     if (user) {
       fetchStoreSettings()
     }
-  }, [user])
+  }, [user, refreshKey]) // Add refreshKey dependency
+
+  // Listen for logo update events from Settings page
+  useEffect(() => {
+    const handleLogoUpdate = (event: Event) => {
+      const customEvent = event as CustomEvent
+      const { logoUrl } = customEvent.detail || {}
+      
+      if (logoUrl) {
+        // Directly update logo if URL provided
+        setStoreLogo(logoUrl)
+      } else {
+        // Trigger refetch if no URL provided
+        setRefreshKey(prev => prev + 1)
+      }
+    }
+
+    window.addEventListener('store-logo-updated', handleLogoUpdate)
+    
+    return () => {
+      window.removeEventListener('store-logo-updated', handleLogoUpdate)
+    }
+  }, [])
 
   // Use business name if available, otherwise use fetched store name
   const displayName = user?.businessName || storeName

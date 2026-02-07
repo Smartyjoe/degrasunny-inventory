@@ -43,6 +43,15 @@ class StoreSettingsController extends Controller
      */
     public function uploadLogo(Request $request)
     {
+        // Detailed logging BEFORE validation
+        \Log::info('Logo upload attempt started', [
+            'user_id' => auth()->id(),
+            'has_file' => $request->hasFile('logo'),
+            'file_size' => $request->hasFile('logo') ? $request->file('logo')->getSize() : 'N/A',
+            'mime_type' => $request->hasFile('logo') ? $request->file('logo')->getMimeType() : 'N/A',
+            'original_name' => $request->hasFile('logo') ? $request->file('logo')->getClientOriginalName() : 'N/A',
+        ]);
+
         // Issue 3 Fix: Accept multiple image formats and increase size limit
         $request->validate([
             'logo' => 'required|file|mimes:jpg,jpeg,png,webp|max:25600', // 25MB max
@@ -58,15 +67,23 @@ class StoreSettingsController extends Controller
             $storeSetting = $user->storeSetting;
 
             if (!$storeSetting) {
+                \Log::info('Creating new store setting for user', ['user_id' => $user->id]);
                 $storeSetting = StoreSetting::create([
                     'user_id' => $user->id,
                     'store_name' => $user->business_name ?? $user->name . "'s Store",
                 ]);
             }
 
+            // Ensure directory exists
+            if (!\Storage::disk('public')->exists('store_logos')) {
+                \Storage::disk('public')->makeDirectory('store_logos');
+                \Log::info('Created store_logos directory');
+            }
+
             // Delete old logo if exists
             if ($storeSetting->store_logo && \Storage::disk('public')->exists($storeSetting->store_logo)) {
                 \Storage::disk('public')->delete($storeSetting->store_logo);
+                \Log::info('Deleted old logo', ['path' => $storeSetting->store_logo]);
             }
 
             // Issue 4 Fix: Store with unique filename to prevent overwrites
@@ -74,13 +91,27 @@ class StoreSettingsController extends Controller
             $filename = time() . '_' . $user->id . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
             $logoPath = $file->storeAs('store_logos', $filename, 'public');
             
+            \Log::info('Logo file stored successfully', [
+                'path' => $logoPath,
+                'full_path' => storage_path('app/public/' . $logoPath),
+                'file_exists' => \Storage::disk('public')->exists($logoPath),
+            ]);
+
             $storeSetting->update(['store_logo' => $logoPath]);
+
+            \Log::info('Logo upload completed', [
+                'user_id' => $user->id,
+                'setting_id' => $storeSetting->id,
+                'logo_path' => $logoPath,
+                'full_url' => asset('storage/' . $logoPath),
+            ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Logo uploaded successfully',
                 'data' => [
                     'storeLogo' => asset('storage/' . $logoPath),
+                    'logoPath' => $logoPath, // For debugging
                 ],
             ]);
         } catch (\Exception $e) {
@@ -89,12 +120,19 @@ class StoreSettingsController extends Controller
                 'user_id' => auth()->id(),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to upload logo. Please try again or contact support.',
                 'error' => config('app.debug') ? $e->getMessage() : 'Upload error',
+                'debug_info' => config('app.debug') ? [
+                    'storage_path' => storage_path('app/public'),
+                    'public_path' => public_path('storage'),
+                    'symlink_exists' => is_link(public_path('storage')),
+                ] : null,
             ], 500);
         }
     }

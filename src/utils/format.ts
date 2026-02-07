@@ -4,6 +4,9 @@
 
 // Currency formatting
 export const formatCurrency = (amount: number, currency: string = '₦'): string => {
+  if (amount === null || amount === undefined || isNaN(amount)) {
+    return `${currency}0.00`;
+  }
   return `${currency}${amount.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
@@ -33,7 +36,9 @@ export const formatPercentage = (value: number, decimals: number = 1): string =>
 
 // Date formatting
 export const formatDate = (date: string | Date): string => {
+  if (!date) return 'N/A';
   const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return 'Invalid Date';
   return d.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
