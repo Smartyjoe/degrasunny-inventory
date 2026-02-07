@@ -378,20 +378,30 @@ const SalesEntryPage = () => {
                   {todaySales.slice(0, 5).map((sale) => (
                     <div
                       key={sale.id}
-                      className="p-3 bg-gray-50 rounded-lg text-sm"
+                      onClick={() => sale.canEdit ? handleEditSale(sale) : null}
+                      className={`p-3 rounded-lg text-sm transition-all ${
+                        sale.canEdit 
+                          ? 'bg-amber-50 border-2 border-amber-200 cursor-pointer hover:border-amber-400 hover:shadow-lg hover:bg-amber-100' 
+                          : 'bg-gray-50 border border-gray-200'
+                      }`}
                     >
                       <div className="flex justify-between items-start mb-1">
-                        <span className="font-medium text-gray-900 line-clamp-1">
-                          {sale.productName}
-                        </span>
-                        <span className="text-xs text-gray-500">
+                        <div className="flex items-center gap-2 flex-1">
+                          <span className="font-medium text-gray-900 line-clamp-1">
+                            {sale.productName}
+                          </span>
+                          {sale.canEdit && (
+                            <Edit2 className="w-3 h-3 text-amber-600 flex-shrink-0" />
+                          )}
+                        </div>
+                        <span className="text-xs text-gray-500 ml-2">
                           {formatTime(sale.createdAt)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <div className="flex gap-2 items-center">
                           <Badge size="sm" variant="info">
-                            {sale.quantity} {sale.unit}
+                            {formatQuantityDisplay(sale.quantity)} {sale.unit}
                           </Badge>
                           <Badge
                             size="sm"
@@ -404,24 +414,23 @@ const SalesEntryPage = () => {
                           <span className="font-semibold text-gray-900">
                             {formatCurrency(sale.totalAmount)}
                           </span>
-                          {sale.canEdit && (
-                            <button
-                              onClick={() => handleEditSale(sale)}
-                              className="text-amber-600 hover:text-amber-700"
-                              title="Edit Sale"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                          )}
                           <button
-                            onClick={() => handleViewReceipt(sale.id)}
-                            className="text-blue-600 hover:text-blue-700"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewReceipt(sale.id)
+                            }}
+                            className="text-blue-600 hover:text-blue-700 transition-colors"
                             title="View Receipt"
                           >
                             <Receipt className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
+                      {sale.canEdit && (
+                        <div className="mt-2 pt-2 border-t border-amber-300">
+                          <p className="text-xs text-amber-700 font-medium italic">✏️ Click to edit this sale</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

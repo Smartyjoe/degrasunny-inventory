@@ -297,37 +297,41 @@ const StockAdditionPage = () => {
                     return (
                       <div
                         key={addition.id}
-                        className="p-3 bg-gray-50 rounded-lg"
+                        onClick={() => addition.canEdit ? handleEditAddition(addition) : null}
+                        className={`p-3 rounded-lg transition-all ${
+                          addition.canEdit 
+                            ? 'bg-amber-50 border-2 border-amber-200 cursor-pointer hover:border-amber-400 hover:shadow-lg hover:bg-amber-100' 
+                            : 'bg-gray-50 border border-gray-200'
+                        }`}
                       >
                         <div className="flex justify-between items-start mb-2">
-                          <span className="text-sm font-medium text-gray-900 line-clamp-2">
-                            {product?.name || 'Unknown Product'}
-                          </span>
+                          <div className="flex items-center gap-2 flex-1">
+                            <span className="text-sm font-medium text-gray-900 line-clamp-2">
+                              {product?.name || 'Unknown Product'}
+                            </span>
+                            {addition.canEdit && (
+                              <Edit2 className="w-3 h-3 text-amber-600 flex-shrink-0" />
+                            )}
+                          </div>
                           <Badge size="sm" variant="success">
                             +{formatQuantityDisplay(addition.quantity)}
                           </Badge>
                         </div>
                         <div className="flex justify-between items-center text-xs text-gray-600">
                           <span>{formatDate(addition.date)}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900">
-                              {formatCurrency(addition.totalCost)}
-                            </span>
-                            {addition.canEdit && (
-                              <button
-                                onClick={() => handleEditAddition(addition)}
-                                className="text-amber-600 hover:text-amber-700"
-                                title="Edit Stock Addition"
-                              >
-                                <Edit2 className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
+                          <span className="font-semibold text-gray-900">
+                            {formatCurrency(addition.totalCost)}
+                          </span>
                         </div>
                         {addition.notes && (
                           <p className="text-xs text-gray-500 mt-1 line-clamp-1">
                             {addition.notes}
                           </p>
+                        )}
+                        {addition.canEdit && (
+                          <div className="mt-2 pt-2 border-t border-amber-300">
+                            <p className="text-xs text-amber-700 font-medium italic">✏️ Click to edit this stock addition</p>
+                          </div>
                         )}
                       </div>
                     )
