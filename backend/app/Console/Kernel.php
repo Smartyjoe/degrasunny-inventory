@@ -24,15 +24,22 @@ class Kernel extends ConsoleKernel
         // Run daily stock carryforward at midnight
         $schedule->command('stock:carryforward')
             ->dailyAt('00:00')
-            ->timezone('UTC') // Adjust to your timezone (e.g., 'Africa/Lagos', 'America/New_York')
+            ->timezone('Africa/Lagos') // Adjust to your timezone
             ->withoutOverlapping()
             ->runInBackground();
 
         // Cleanup expired OTP codes daily at 2 AM
         $schedule->command('otp:cleanup')
             ->dailyAt('02:00')
-            ->timezone('UTC')
+            ->timezone('Africa/Lagos')
             ->withoutOverlapping();
+
+        // Send weekly sales report every Saturday at 8 PM
+        $schedule->command('reports:weekly-sales')
+            ->weeklyOn(6, '20:00') // Saturday at 8:00 PM
+            ->timezone('Africa/Lagos')
+            ->withoutOverlapping()
+            ->runInBackground();
     }
 
     /**

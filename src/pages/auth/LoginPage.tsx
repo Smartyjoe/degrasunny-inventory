@@ -33,8 +33,15 @@ const LoginPage = () => {
     try {
       const response = await authService.login(data)
       setAuth(response.user, response.token)
-      toast.success('Welcome back!')
-      navigate('/dashboard')
+      
+      // Check if email verification is required
+      if (response.user.emailVerified === false) {
+        toast.success('Please verify your email to continue')
+        navigate('/auth/verify-email', { state: { email: response.user.email } })
+      } else {
+        toast.success('Welcome back!')
+        navigate('/dashboard')
+      }
     } catch (error: any) {
       toast.error(error.message || 'Login failed')
     } finally {

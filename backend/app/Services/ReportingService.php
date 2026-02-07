@@ -116,7 +116,7 @@ class ReportingService
     /**
      * Get product performance report
      */
-    public function getProductPerformance(array $filters = []): array
+    public function getProductPerformance($userId = null, $startDate = null, $endDate = null): array
     {
         $query = Sale::select(
             'product_id',
@@ -129,16 +129,37 @@ class ReportingService
         ->groupBy('product_id')
         ->orderByDesc('total_sales');
 
-        if (isset($filters['start_date'])) {
-            $query->where('date', '>=', $filters['start_date']);
-        }
-
-        if (isset($filters['end_date'])) {
-            $query->where('date', '<=', $filters['end_date']);
+        // Handle both new signature and old filters array
+        if (is_array($userId)) {
+            $filters = $userId;
+            if (isset($filters['start_date'])) {
+                $query->where('date', '>=', $filters['start_date']);
+            }
+            if (isset($filters['end_date'])) {
+                $query->where('date', '<=', $filters['end_date']);
+            }
+        } else {
+            if ($userId) {
+                $query->where('user_id', $userId);
+            }
+            if ($startDate) {
+                $query->where('date', '>=', $startDate);
+            }
+            if ($endDate) {
+                $query->where('date', '<=', $endDate);
+            }
         }
 
         return $query->get()->map(function ($item) {
             return [
+                'product_id' => (string) $item->product_id,
+                'product_name' => $item->product ? $item->product->name : 'Unknown Product',
+                'total_sales' => (float) $item->total_sales,
+                'total_profit' => (float) $item->total_profit,
+                'total_quantity' => (float) $item->quantity_sold,
+                'total_revenue' => (float) $item->total_sales,
+                'sales_count' => $item->sales_count,
+                // Legacy keys for backward compatibility
                 'productId' => (string) $item->product_id,
                 'productName' => $item->product ? $item->product->name : 'Unknown Product',
                 'totalSales' => (float) $item->total_sales,
@@ -147,6 +168,40 @@ class ReportingService
                 'salesCount' => $item->sales_count,
             ];
         })->toArray();
+    }
+
+    /**
+     * Get sales report for a specific user and date range
+     */
+    public function getSalesReport($userId, $startDate, $endDate): array
+    {
+        $sales = Sale::where('user_id', $userId)
+            ->whereBetween('date', [$startDate, $endDate])
+            ->get();
+
+        $totalSales = $sales->sum('total_amount');
+        $totalProfit = $sales->sum('profit');
+        $totalTransactions = $sales->count();
+        $totalItemsSold = $sales->sum('quantity');
+
+        // Payment breakdown
+        $paymentBreakdown = $sales->groupBy('payment_method')->map(function ($items) {
+            return $items->sum('total_amount');
+        })->toArray();
+
+        // Calculate metrics
+        $averageTransactionValue = $totalTransactions > 0 ? $totalSales / $totalTransactions : 0;
+        $profitMargin = $totalSales > 0 ? ($totalProfit / $totalSales) * 100 : 0;
+
+        return [
+            'total_sales' => (float) $totalSales,
+            'total_profit' => (float) $totalProfit,
+            'total_transactions' => $totalTransactions,
+            'total_items_sold' => (float) $totalItemsSold,
+            'average_transaction_value' => (float) $averageTransactionValue,
+            'profit_margin' => (float) $profitMargin,
+            'payment_breakdown' => $paymentBreakdown,
+        ];
     }
 
     /**
