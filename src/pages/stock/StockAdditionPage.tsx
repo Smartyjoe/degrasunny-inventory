@@ -318,9 +318,9 @@ const StockAdditionPage = () => {
                           </Badge>
                         </div>
                         <div className="flex justify-between items-center text-xs text-gray-600">
-                          <span>{formatDate(addition.date)}</span>
+                          <span>{addition.date ? formatDate(addition.date) : 'N/A'}</span>
                           <span className="font-semibold text-gray-900">
-                            {formatCurrency(addition.totalCost)}
+                            {addition.totalCost ? formatCurrency(addition.totalCost) : 'N/A'}
                           </span>
                         </div>
                         {addition.notes && (
