@@ -1,4 +1,4 @@
-import api from './api'
+import api, { getCsrfCookie } from './api'
 import { ApiResponse, StoreSettings, StoreSettingsFormData } from '../types'
 
 export const storeSettingsService = {
@@ -47,6 +47,9 @@ export const storeSettingsService = {
       throw new Error('Invalid file type. Please upload JPG, PNG, or WEBP image.')
     }
 
+    // Initialize CSRF cookie for Sanctum (if needed)
+    await getCsrfCookie()
+
     const formData = new FormData()
     formData.append('logo', file)
 
@@ -56,6 +59,7 @@ export const storeSettingsService = {
           'Content-Type': 'multipart/form-data',
         },
         timeout: 30000, // 30 seconds timeout for large files
+        withCredentials: true, // Ensure credentials are sent
       })
       return response.data.data.storeLogo
     } catch (error: any) {

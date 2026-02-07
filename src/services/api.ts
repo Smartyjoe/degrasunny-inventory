@@ -11,6 +11,7 @@ const api: AxiosInstance = axios.create({
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
+  withCredentials: true, // Enable cookies for CSRF protection
 })
 
 // Request interceptor - Add auth token
@@ -53,5 +54,16 @@ api.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+// Helper function to get CSRF cookie
+export const getCsrfCookie = async (): Promise<void> => {
+  try {
+    await axios.get(`${API_BASE_URL.replace('/api', '')}/sanctum/csrf-cookie`, {
+      withCredentials: true,
+    })
+  } catch (error) {
+    console.warn('CSRF cookie fetch failed (may not be needed with token auth):', error)
+  }
+}
 
 export default api
