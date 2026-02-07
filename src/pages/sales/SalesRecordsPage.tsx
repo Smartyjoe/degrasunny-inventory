@@ -37,10 +37,10 @@ const SalesRecordsPage = () => {
   const quantity = watch('quantity')
   const pricePerUnit = selectedProduct && unit && quantity > 0
     ? unit === 'bag'
-      ? selectedProduct.price
+      ? selectedProduct.sellingPrice
       : unit === 'cup'
-      ? (selectedProduct.price / (selectedProduct.cupsPerBag || 1))
-      : (selectedProduct.price / (selectedProduct.bucketsPerBag || 1))
+      ? (selectedProduct.cupPrice || (selectedProduct.sellingPrice / (selectedProduct.cupsPerBag || 1)))
+      : (selectedProduct.bucketPrice || (selectedProduct.sellingPrice / (selectedProduct.bucketsPerBag || 1)))
     : 0
   const totalAmount = pricePerUnit * quantity
 
