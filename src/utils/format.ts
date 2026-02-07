@@ -116,3 +116,23 @@ export const sanitizeNumberInput = (value: string): number => {
   const num = parseFloat(cleaned);
   return isNaN(num) ? 0 : num;
 };
+
+/**
+ * Format quantity values to 4 decimal places
+ * Used for stock quantities, bags, etc.
+ */
+export const formatQuantity = (value: number | string): string => {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num)) return '0.0000';
+  return num.toFixed(4);
+};
+
+/**
+ * Format quantity for display (removes trailing zeros)
+ */
+export const formatQuantityDisplay = (value: number | string): string => {
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num)) return '0';
+  // Format to 4 decimals but remove trailing zeros
+  return parseFloat(num.toFixed(4)).toString();
+};

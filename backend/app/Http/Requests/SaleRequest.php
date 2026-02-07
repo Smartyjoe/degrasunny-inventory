@@ -24,6 +24,10 @@ class SaleRequest extends FormRequest
         if ($this->has('paymentMethod')) {
             $data['payment_method'] = $this->input('paymentMethod');
         }
+
+        if ($this->has('description')) {
+            $data['description'] = $this->input('description');
+        }
         
         if (!empty($data)) {
             $this->merge($data);
@@ -37,6 +41,7 @@ class SaleRequest extends FormRequest
             'quantity' => 'required|numeric|min:0.01',
             'unit' => ['required', Rule::in(['bag', 'cup', 'bucket'])],
             'payment_method' => ['required', Rule::in(['cash', 'pos', 'bank_transfer'])],
+            'description' => 'nullable|string|max:1000',
             'date' => 'nullable|date',
         ];
     }

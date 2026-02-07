@@ -20,10 +20,11 @@ class Sale extends Model
         'profit',
         'date',
         'payment_method',
+        'description',
     ];
 
     protected $casts = [
-        'quantity' => 'decimal:2',
+        'quantity' => 'decimal:4',
         'unit_price' => 'decimal:2',
         'total_amount' => 'decimal:2',
         'cost_equivalent' => 'decimal:2',

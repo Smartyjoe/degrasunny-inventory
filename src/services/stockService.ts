@@ -124,4 +124,23 @@ export const stockService = {
     const response = await api.get<ApiResponse<StockAddition[]>>('/stock/additions', { params: filters })
     return response.data.data
   },
+
+  // Update stock addition
+  updateStockAddition: async (id: string, data: Partial<Omit<StockAddition, 'id' | 'totalCost'>>): Promise<StockAddition> => {
+    if (USE_MOCK_DATA) {
+      await delay(500)
+      const index = stockAdditions.findIndex(sa => sa.id === id)
+      if (index === -1) throw new Error('Stock addition not found')
+      
+      stockAdditions[index] = {
+        ...stockAdditions[index],
+        ...data,
+      }
+      
+      return stockAdditions[index]
+    }
+    
+    const response = await api.put<ApiResponse<StockAddition>>(`/stock/additions/${id}`, data)
+    return response.data.data
+  },
 }

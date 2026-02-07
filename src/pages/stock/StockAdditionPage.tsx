@@ -2,9 +2,9 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useProducts } from '@/hooks/useProducts'
-import { useAddStock, useStockAdditions } from '@/hooks/useStock'
+import { useAddStock, useStockAdditions, useUpdateStockAddition } from '@/hooks/useStock'
 import { stockAdditionSchema } from '@/utils/validation'
-import { Product } from '@/types'
+import { Product, StockAddition } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
@@ -12,8 +12,10 @@ import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { Loading } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
-import { Plus, Package } from 'lucide-react'
-import { formatCurrency, formatDate, getTodayDate } from '@/utils/format'
+import { Modal } from '@/components/ui/Modal'
+import { Plus, Package, Edit2 } from 'lucide-react'
+import { formatCurrency, formatDate, getTodayDate, formatQuantityDisplay } from '@/utils/format'
+import toast from 'react-hot-toast'
 
 type StockAdditionFormData = {
   productId: string
@@ -26,8 +28,11 @@ const StockAdditionPage = () => {
   const { data: products, isLoading: productsLoading } = useProducts({ isActive: true })
   const { data: recentAdditions } = useStockAdditions()
   const addStock = useAddStock()
+  const updateStockAddition = useUpdateStockAddition()
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [editingAddition, setEditingAddition] = useState<StockAddition | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const {
     register,
@@ -77,6 +82,50 @@ const StockAdditionPage = () => {
     } catch (error) {
       // Error handled by mutation
     }
+  }
+
+  const handleEditAddition = (addition: StockAddition) => {
+    setEditingAddition(addition)
+    const product = products?.find(p => p.id === addition.productId)
+    setSelectedProduct(product || null)
+    
+    reset({
+      productId: addition.productId,
+      quantity: addition.quantity,
+      costPrice: addition.costPrice,
+      notes: addition.notes,
+    })
+    
+    setShowEditModal(true)
+  }
+
+  const handleUpdateAddition = async (data: StockAdditionFormData) => {
+    if (!editingAddition) return
+
+    try {
+      await updateStockAddition.mutateAsync({
+        id: editingAddition.id,
+        data: {
+          quantity: data.quantity,
+          costPrice: data.costPrice,
+          notes: data.notes,
+        },
+      })
+      setShowEditModal(false)
+      setEditingAddition(null)
+      reset()
+      setSelectedProduct(null)
+      toast.success('Stock addition updated successfully')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update stock addition')
+    }
+  }
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false)
+    setEditingAddition(null)
+    reset()
+    setSelectedProduct(null)
   }
 
   if (productsLoading) {
@@ -162,7 +211,8 @@ const StockAdditionPage = () => {
                       <Input
                         label="Quantity (Bags)"
                         type="number"
-                        min="1"
+                        step="0.01"
+                        min="0.01"
                         placeholder="10"
                         error={errors.quantity?.message}
                         {...register('quantity', { valueAsNumber: true })}
@@ -254,14 +304,25 @@ const StockAdditionPage = () => {
                             {product?.name || 'Unknown Product'}
                           </span>
                           <Badge size="sm" variant="success">
-                            +{addition.quantity}
+                            +{formatQuantityDisplay(addition.quantity)}
                           </Badge>
                         </div>
                         <div className="flex justify-between items-center text-xs text-gray-600">
                           <span>{formatDate(addition.date)}</span>
-                          <span className="font-semibold text-gray-900">
-                            {formatCurrency(addition.totalCost)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-gray-900">
+                              {formatCurrency(addition.totalCost)}
+                            </span>
+                            {addition.canEdit && (
+                              <button
+                                onClick={() => handleEditAddition(addition)}
+                                className="text-amber-600 hover:text-amber-700"
+                                title="Edit Stock Addition"
+                              >
+                                <Edit2 className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         {addition.notes && (
                           <p className="text-xs text-gray-500 mt-1 line-clamp-1">
@@ -283,6 +344,90 @@ const StockAdditionPage = () => {
           </Card>
         </div>
       </div>
+
+      {/* Edit Stock Addition Modal */}
+      <Modal isOpen={showEditModal} onClose={handleCloseEditModal} title="Edit Stock Addition">
+        <form onSubmit={handleSubmit(handleUpdateAddition)} className="space-y-4 p-6">
+          {/* Product - Read only */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+            <input
+              type="text"
+              value={selectedProduct?.name || ''}
+              disabled
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+            />
+          </div>
+
+          {/* Quantity & Cost */}
+          <div className="grid grid-cols-2 gap-4">
+            <Input
+              label="Quantity (Bags)"
+              type="number"
+              step="0.01"
+              min="0.01"
+              error={errors.quantity?.message}
+              {...register('quantity', { valueAsNumber: true })}
+            />
+
+            <Input
+              label="Cost Price per Bag"
+              type="number"
+              step="0.01"
+              error={errors.costPrice?.message}
+              {...register('costPrice', { valueAsNumber: true })}
+            />
+          </div>
+
+          {/* Notes */}
+          <Input
+            label="Notes (Optional)"
+            placeholder="e.g., Restocked from main supplier"
+            error={errors.notes?.message}
+            {...register('notes')}
+          />
+
+          {/* Cost Summary */}
+          {quantity > 0 && costPrice > 0 && (
+            <div className="p-4 bg-primary-50 rounded-lg space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Quantity:</span>
+                <span className="font-semibold text-gray-900">
+                  {formatQuantityDisplay(quantity)} bags
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Cost per bag:</span>
+                <span className="font-semibold text-gray-900">
+                  {formatCurrency(costPrice)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-lg pt-2 border-t border-primary-200">
+                <span className="font-medium text-gray-900">Total Cost:</span>
+                <span className="font-bold text-primary-700">
+                  {formatCurrency(totalCost)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={handleCloseEditModal} fullWidth>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              isLoading={updateStockAddition.isPending}
+              disabled={!selectedProduct || quantity < 0.01 || costPrice <= 0}
+            >
+              Update Stock
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

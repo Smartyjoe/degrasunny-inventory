@@ -53,6 +53,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/daily/{dailyStock}', [StockController::class, 'updateDailyStock']);
         Route::post('/add', [StockController::class, 'addStock']);
         Route::get('/additions', [StockController::class, 'getStockAdditions']);
+        Route::put('/additions/{stockAddition}', [StockController::class, 'updateStockAddition']);
+        Route::patch('/additions/{stockAddition}', [StockController::class, 'updateStockAddition']);
     });
 
     // Sales
@@ -60,6 +62,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [SalesController::class, 'index']);
         Route::post('/', [SalesController::class, 'store']);
         Route::get('/{sale}', [SalesController::class, 'show']);
+        Route::put('/{sale}', [SalesController::class, 'update']);
+        Route::patch('/{sale}', [SalesController::class, 'update']);
         Route::delete('/{sale}', [SalesController::class, 'destroy']);
     });
 

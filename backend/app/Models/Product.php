@@ -29,12 +29,12 @@ class Product extends Model
     ];
 
     protected $casts = [
-        'current_stock' => 'decimal:2',
+        'current_stock' => 'decimal:4',
         'cost_price' => 'decimal:2',
         'selling_price' => 'decimal:2',
         'cup_price' => 'decimal:2',
         'bucket_price' => 'decimal:2',
-        'reorder_level' => 'decimal:2',
+        'reorder_level' => 'decimal:4',
         'is_retail_enabled' => 'boolean',
         'is_active' => 'boolean',
         'cups_per_bag' => 'integer',

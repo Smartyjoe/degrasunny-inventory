@@ -61,11 +61,12 @@ export const saleSchema = z.object({
   paymentMethod: z.enum(['cash', 'pos', 'bank_transfer'], {
     errorMap: () => ({ message: 'Please select a payment method' }),        
   }),
+  description: z.string().max(1000, 'Description must be less than 1000 characters').optional(),
 })
 
 export const stockAdditionSchema = z.object({
   productId: z.string().min(1, 'Please select a product'),
-  quantity: z.number().min(1, 'Quantity must be at least 1'),
+  quantity: z.number().min(0.01, 'Quantity must be at least 0.01'),
   costPrice: z.number().min(0.01, 'Cost price must be greater than 0'),     
   notes: z.string().optional(),
 })

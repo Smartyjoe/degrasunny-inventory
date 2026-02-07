@@ -43,3 +43,17 @@ export const useStockAdditions = (filters?: { startDate?: string; endDate?: stri
     queryFn: () => stockService.getStockAdditions(filters),
   })
 }
+
+export const useUpdateStockAddition = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<StockAddition, 'id' | 'totalCost'>> }) =>
+      stockService.updateStockAddition(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stock'] })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      toast.success('Stock addition updated successfully')
+    },
+  })
+}

@@ -94,6 +94,14 @@ export function ReceiptModal({ isOpen, onClose, saleId }: ReceiptModalProps) {
                     <span>Price per {receipt.sale.unit}:</span>
                     <span>{formatCurrency(receipt.sale.pricePerUnit)}</span>
                   </div>
+                  {receipt.sale.description && (
+                    <div className="mt-3 pt-2 border-t border-gray-200">
+                      <p className="text-xs text-gray-600">
+                        <span className="font-medium">Note:</span>{' '}
+                        <span className="italic">{receipt.sale.description}</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
 

@@ -7,7 +7,7 @@ import Badge from '@/components/ui/Badge'
 import { Loading } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { Box, Calendar } from 'lucide-react'
-import { formatDate, getTodayDate, getStockStatus } from '@/utils/format'
+import { formatDate, getTodayDate, getStockStatus, formatQuantityDisplay } from '@/utils/format'
 import { cn } from '@/utils/cn'
 
 const DailyStockPage = () => {
@@ -82,7 +82,7 @@ const DailyStockPage = () => {
         <Card>
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-1">Opening Stock</p>
-            <p className="text-2xl font-bold text-gray-900">{totalOpeningStock}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatQuantityDisplay(totalOpeningStock)}</p>
             <p className="text-xs text-gray-500 mt-1">bags</p>
           </div>
         </Card>
@@ -90,7 +90,7 @@ const DailyStockPage = () => {
         <Card>
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-1">Stock Added</p>
-            <p className="text-2xl font-bold text-success-600">+{totalStockAdded}</p>
+            <p className="text-2xl font-bold text-success-600">+{formatQuantityDisplay(totalStockAdded)}</p>
             <p className="text-xs text-gray-500 mt-1">bags</p>
           </div>
         </Card>
@@ -98,7 +98,7 @@ const DailyStockPage = () => {
         <Card>
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-1">Stock Sold</p>
-            <p className="text-2xl font-bold text-danger-600">-{totalStockSold}</p>
+            <p className="text-2xl font-bold text-danger-600">-{formatQuantityDisplay(totalStockSold)}</p>
             <p className="text-xs text-gray-500 mt-1">bags</p>
           </div>
         </Card>
@@ -106,7 +106,7 @@ const DailyStockPage = () => {
         <Card>
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-1">Closing Stock</p>
-            <p className="text-2xl font-bold text-primary-600">{totalClosingStock}</p>
+            <p className="text-2xl font-bold text-primary-600">{formatQuantityDisplay(totalClosingStock)}</p>
             <p className="text-xs text-gray-500 mt-1">bags</p>
           </div>
         </Card>
@@ -155,13 +155,13 @@ const DailyStockPage = () => {
                         <div>
                           <p className="font-medium text-gray-900">{item.product.name}</p>
                           <p className="text-xs text-gray-500">
-                            Reorder at: {item.product.reorderLevel}
+                            Reorder at: {formatQuantityDisplay(item.product.reorderLevel)}
                           </p>
                         </div>
                       </td>
                       <td className="py-4 px-4 text-center">
                         <span className="font-medium text-gray-900">
-                          {item.openingStock}
+                          {formatQuantityDisplay(item.openingStock)}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-center">
@@ -169,7 +169,7 @@ const DailyStockPage = () => {
                           'font-medium',
                           item.stockAdded > 0 ? 'text-success-600' : 'text-gray-400'
                         )}>
-                          {item.stockAdded > 0 ? `+${item.stockAdded}` : '-'}
+                          {item.stockAdded > 0 ? `+${formatQuantityDisplay(item.stockAdded)}` : '-'}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-center">
@@ -177,12 +177,12 @@ const DailyStockPage = () => {
                           'font-medium',
                           item.stockSold > 0 ? 'text-danger-600' : 'text-gray-400'
                         )}>
-                          {item.stockSold > 0 ? `-${item.stockSold}` : '-'}
+                          {item.stockSold > 0 ? `-${formatQuantityDisplay(item.stockSold)}` : '-'}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-center">
                         <span className="font-bold text-gray-900">
-                          {item.closingStock}
+                          {formatQuantityDisplay(item.closingStock)}
                         </span>
                       </td>
                       <td className="py-4 px-4 text-center">

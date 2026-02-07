@@ -22,10 +22,10 @@ class StockLedger extends Model
 
     protected $casts = [
         'date' => 'date',
-        'opening_stock' => 'decimal:2',
-        'stock_added' => 'decimal:2',
-        'stock_sold' => 'decimal:2',
-        'closing_stock' => 'decimal:2',
+        'opening_stock' => 'decimal:4',
+        'stock_added' => 'decimal:4',
+        'stock_sold' => 'decimal:4',
+        'closing_stock' => 'decimal:4',
         'manually_edited' => 'boolean',
     ];
 

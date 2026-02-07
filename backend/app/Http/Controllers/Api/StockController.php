@@ -72,11 +72,14 @@ class StockController extends Controller
             'data' => [
                 'id' => (string) $addition->id,
                 'productId' => (string) $addition->product_id,
+                'productName' => $addition->product ? $addition->product->name : 'Unknown Product',
                 'quantity' => (float) $addition->quantity,
                 'costPrice' => (float) $addition->cost_price,
                 'totalCost' => (float) $addition->total_cost,
                 'date' => $addition->date->format('Y-m-d'),
                 'notes' => $addition->notes,
+                'createdAt' => $addition->created_at->toIso8601String(),
+                'canEdit' => true, // Newly created stock additions can be edited (same-day only)
             ],
         ], 201);
     }
@@ -86,38 +89,79 @@ class StockController extends Controller
      */
     public function getStockAdditions(Request $request): JsonResponse
     {
-        $query = StockAddition::with('product')->orderBy('date', 'desc');
-
-        if ($request->has('product_id')) {
-            $query->where('product_id', $request->product_id);
+        $filters = [];
+        
+        if ($request->has('productId')) {
+            $filters['product_id'] = $request->query('productId');
         }
 
-        if ($request->has('start_date')) {
-            $query->where('date', '>=', $request->start_date);
+        if ($request->has('startDate')) {
+            $filters['start_date'] = $request->query('startDate');
         }
 
-        if ($request->has('end_date')) {
-            $query->where('date', '<=', $request->end_date);
+        if ($request->has('endDate')) {
+            $filters['end_date'] = $request->query('endDate');
         }
 
-        $additions = $query->get();
+        $additions = $this->stockService->getStockAdditions($filters);
 
         return response()->json([
             'success' => true,
             'message' => 'Stock additions retrieved successfully',
-            'data' => $additions->map(function ($addition) {
-                return [
-                    'id' => (string) $addition->id,
-                    'productId' => (string) $addition->product_id,
-                    'productName' => $addition->product ? $addition->product->name : 'Unknown Product',
-                    'quantity' => (float) $addition->quantity,
-                    'costPrice' => (float) $addition->cost_price,
-                    'totalCost' => (float) $addition->total_cost,
-                    'supplier' => $addition->supplier,
-                    'date' => $addition->date->format('Y-m-d'),
-                    'notes' => $addition->notes,
-                ];
-            })->values(),
+            'data' => $additions,
         ]);
+    }
+
+    /**
+     * Update stock addition
+     */
+    public function updateStockAddition(Request $request, StockAddition $stockAddition): JsonResponse
+    {
+        // Verify ownership
+        if ($stockAddition->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stock addition not found or access denied',
+            ], 404);
+        }
+
+        try {
+            $validated = $request->validate([
+                'quantity' => 'sometimes|required|numeric|min:0.01',
+                'costPrice' => 'sometimes|required|numeric|min:0',
+                'supplier' => 'nullable|string|max:255',
+                'notes' => 'nullable|string|max:1000',
+            ]);
+
+            $data = [
+                'quantity' => $validated['quantity'] ?? $stockAddition->quantity,
+                'cost_price' => $validated['costPrice'] ?? $stockAddition->cost_price,
+                'supplier' => $validated['supplier'] ?? $stockAddition->supplier,
+                'notes' => $validated['notes'] ?? $stockAddition->notes,
+            ];
+
+            $updatedAddition = $this->stockService->updateStockAddition($stockAddition, $data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stock addition updated successfully',
+                'data' => [
+                    'id' => (string) $updatedAddition->id,
+                    'productId' => (string) $updatedAddition->product_id,
+                    'quantity' => (float) $updatedAddition->quantity,
+                    'costPrice' => (float) $updatedAddition->cost_price,
+                    'supplier' => $updatedAddition->supplier,
+                    'notes' => $updatedAddition->notes,
+                    'date' => $updatedAddition->date->format('Y-m-d'),
+                    'createdAt' => $updatedAddition->created_at->toIso8601String(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => null,
+            ], 400);
+        }
     }
 }

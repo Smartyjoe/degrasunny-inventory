@@ -96,10 +96,71 @@ class SalesController extends Controller
                     'totalAmount' => (float) $sale->total_amount,
                     'profit' => (float) $sale->profit,
                     'paymentMethod' => $sale->payment_method,
+                    'description' => $sale->description,
                     'date' => $sale->date->format('Y-m-d'),
                     'createdAt' => $sale->created_at->toIso8601String(),
+                    'canEdit' => true, // Newly created sales can always be edited (within 3-hour window)
                 ],
             ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => null,
+            ], 400);
+        }
+    }
+
+    /**
+     * Update sale
+     */
+    public function update(Request $request, Sale $sale): JsonResponse
+    {
+        // Verify ownership
+        if ($sale->user_id !== $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Sale not found or access denied',
+            ], 404);
+        }
+
+        try {
+            $validated = $request->validate([
+                'productId' => 'sometimes|required|exists:products,id',
+                'quantity' => 'sometimes|required|numeric|min:0.01',
+                'unit' => 'sometimes|required|in:bag,retail',
+                'paymentMethod' => 'sometimes|required|in:cash,pos,bank_transfer',
+                'description' => 'nullable|string|max:1000',
+            ]);
+
+            $data = [
+                'product_id' => $validated['productId'] ?? $sale->product_id,
+                'quantity' => $validated['quantity'] ?? $sale->quantity,
+                'unit' => $validated['unit'] ?? $sale->unit,
+                'payment_method' => $validated['paymentMethod'] ?? $sale->payment_method,
+                'description' => $validated['description'] ?? $sale->description,
+            ];
+
+            $updatedSale = $this->salesService->updateSale($sale, $data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sale updated successfully',
+                'data' => [
+                    'id' => (string) $updatedSale->id,
+                    'productId' => (string) $updatedSale->product_id,
+                    'productName' => $updatedSale->product->name,
+                    'quantity' => (float) $updatedSale->quantity,
+                    'unit' => $updatedSale->unit,
+                    'pricePerUnit' => (float) $updatedSale->unit_price,
+                    'totalAmount' => (float) $updatedSale->total_amount,
+                    'profit' => (float) $updatedSale->profit,
+                    'paymentMethod' => $updatedSale->payment_method,
+                    'description' => $updatedSale->description,
+                    'date' => $updatedSale->date->format('Y-m-d'),
+                    'createdAt' => $updatedSale->created_at->toIso8601String(),
+                ],
+            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

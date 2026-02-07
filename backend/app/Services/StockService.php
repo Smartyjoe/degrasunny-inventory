@@ -190,4 +190,85 @@ class StockService
             })
             ->toArray();
     }
+
+    public function updateStockAddition(StockAddition $stockAddition, array $data): StockAddition
+    {
+        // Enforce same-day edit window (until midnight)
+        $additionDate = $stockAddition->created_at->startOfDay();
+        $todayDate = now()->startOfDay();
+
+        if (!$additionDate->equalTo($todayDate)) {
+            throw new \Exception('Stock additions can only be edited on the same day before midnight.');
+        }
+
+        return DB::transaction(function () use ($stockAddition, $data) {
+            $product = Product::findOrFail($stockAddition->product_id);
+            $oldQuantity = $stockAddition->quantity;
+            $newQuantity = $data['quantity'];
+            $quantityDiff = $newQuantity - $oldQuantity;
+            $date = $stockAddition->date;
+
+            // Update product current stock
+            $product->current_stock += $quantityDiff;
+            $product->save();
+
+            // Update stock addition
+            $stockAddition->update([
+                'quantity' => $newQuantity,
+                'cost_price' => $data['cost_price'] ?? $stockAddition->cost_price,
+                'supplier' => $data['supplier'] ?? $stockAddition->supplier,
+                'notes' => $data['notes'] ?? $stockAddition->notes,
+            ]);
+
+            // Update stock ledger for the addition date
+            $ledger = $this->ledgerService->getOrCreateDailyLedger($product, $date);
+            $ledger->stock_added += $quantityDiff;
+            $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
+            $ledger->save();
+
+            // Log the update
+            AuditLog::log('updated', 'stock_addition', $stockAddition->id, ['old' => $oldQuantity], ['new' => $newQuantity]);
+
+            return $stockAddition->fresh();
+        });
+    }
+
+    /**
+     * Get stock additions with edit window check
+     */
+    public function getStockAdditions(array $filters = []): array
+    {
+        $query = StockAddition::with('product')->orderBy('created_at', 'desc');
+
+        if (isset($filters['product_id'])) {
+            $query->where('product_id', $filters['product_id']);
+        }
+
+        if (isset($filters['start_date'])) {
+            $query->where('date', '>=', $filters['start_date']);
+        }
+
+        if (isset($filters['end_date'])) {
+            $query->where('date', '<=', $filters['end_date']);
+        }
+
+        return $query->get()->map(function ($addition) {
+            $additionDate = $addition->created_at->startOfDay();
+            $todayDate = now()->startOfDay();
+            $canEdit = $additionDate->equalTo($todayDate);
+
+            return [
+                'id' => (string) $addition->id,
+                'productId' => (string) $addition->product_id,
+                'productName' => $addition->product ? $addition->product->name : 'Unknown Product',
+                'quantity' => (float) $addition->quantity,
+                'costPrice' => (float) $addition->cost_price,
+                'supplier' => $addition->supplier,
+                'notes' => $addition->notes,
+                'date' => $addition->date->format('Y-m-d'),
+                'createdAt' => $addition->created_at->toIso8601String(),
+                'canEdit' => $canEdit,
+            ];
+        })->toArray();
+    }
 }

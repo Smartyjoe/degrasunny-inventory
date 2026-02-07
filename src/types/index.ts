@@ -73,8 +73,10 @@ export interface Sale {
   totalAmount: number
   profit: number
   paymentMethod: PaymentMethod
+  description?: string
   date: string
   createdAt: string
+  canEdit?: boolean
 }
 
 export interface SaleFormData {
@@ -82,6 +84,7 @@ export interface SaleFormData {
   unit: SaleUnit
   quantity: number
   paymentMethod: PaymentMethod
+  description?: string
 }
 
 // Stock Types
@@ -107,6 +110,7 @@ export interface StockAddition {
   date: string
   notes?: string
   createdAt: string
+  canEdit?: boolean
 }
 
 // Dashboard Types
@@ -200,6 +204,7 @@ export interface Receipt {
     pricePerUnit: number
     totalAmount: number
     paymentMethod: string
+    description?: string
   }
 }
 

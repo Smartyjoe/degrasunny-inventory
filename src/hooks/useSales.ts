@@ -33,6 +33,22 @@ export const useCreateSale = () => {
   })
 }
 
+export const useUpdateSale = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<SaleFormData> }) =>
+      salesService.updateSale(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] })
+      queryClient.invalidateQueries({ queryKey: ['products'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['stock'] })
+      toast.success('Sale updated successfully')
+    },
+  })
+}
+
 export const useDeleteSale = () => {
   const queryClient = useQueryClient()
 

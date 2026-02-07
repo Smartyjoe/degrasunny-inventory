@@ -174,6 +174,11 @@ class SalesService
         }
 
         return $query->get()->map(function ($sale) {
+            $createdAt = $sale->created_at;
+            $now = now();
+            $hoursDiff = $createdAt->diffInHours($now);
+            $canEdit = $hoursDiff < 3;
+
             return [
                 'id' => (string) $sale->id,
                 'productId' => (string) $sale->product_id,
@@ -184,9 +189,93 @@ class SalesService
                 'totalAmount' => (float) $sale->total_amount,
                 'profit' => (float) $sale->profit,
                 'paymentMethod' => $sale->payment_method,
+                'description' => $sale->description,
                 'date' => $sale->date->format('Y-m-d'),
                 'createdAt' => $sale->created_at->toIso8601String(),
+                'canEdit' => $canEdit,
             ];
         })->toArray();
+    }
+
+    public function updateSale(Sale $sale, array $data): Sale
+    {
+        // Enforce 3-hour edit window
+        $createdAt = $sale->created_at;
+        $now = now();
+        $hoursDiff = $createdAt->diffInHours($now);
+
+        if ($hoursDiff >= 3) {
+            throw new \Exception('Sales can only be edited within 3 hours of creation.');
+        }
+
+        return DB::transaction(function () use ($sale, $data) {
+            $product = $sale->product;
+            $oldQuantity = $sale->quantity;
+            $oldUnit = $sale->unit;
+            $newQuantity = $data['quantity'];
+            $newUnit = $data['unit'];
+            $date = $sale->date;
+
+            // Convert old and new quantities to bags
+            $oldBags = $this->pricingService->convertToBags($product, $oldUnit, $oldQuantity);
+            $newBags = $this->pricingService->convertToBags($product, $newUnit, $newQuantity);
+            $bagsDiff = $newBags - $oldBags;
+
+            // Validate retail unit if applicable
+            $this->pricingService->validateRetailUnit($product, $newUnit);
+
+            // Recalculate pricing
+            $pricing = $this->pricingService->calculateProfit($product, $newUnit, $newQuantity);
+
+            // Check if we have enough stock for the update
+            $currentAvailable = $product->current_stock + $oldBags; // Add back old stock
+            if ($currentAvailable < $newBags) {
+                throw new \Exception('Insufficient stock for this update.');
+            }
+
+            // Revert old stock impact and apply new
+            $product->current_stock += $oldBags;
+            $product->current_stock -= $newBags;
+            $product->save();
+
+            // Store old values for profit summary update
+            $oldProfit = $sale->profit;
+            $oldTotalAmount = $sale->total_amount;
+            $oldCostEquivalent = $sale->cost_equivalent;
+
+            // Update sale
+            $sale->update([
+                'quantity' => $newQuantity,
+                'unit' => $newUnit,
+                'unit_price' => $pricing['unit_price'],
+                'total_amount' => $pricing['total_amount'],
+                'cost_equivalent' => $pricing['cost_equivalent'],
+                'profit' => $pricing['profit'],
+                'payment_method' => $data['payment_method'] ?? $sale->payment_method,
+                'description' => $data['description'] ?? $sale->description,
+            ]);
+
+            // Update stock ledger for the sale date
+            $ledger = $this->ledgerService->getOrCreateDailyLedger($product, $date);
+            $ledger->stock_sold += $bagsDiff;
+            $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
+            $ledger->save();
+
+            // Update profit summary
+            $summary = ProfitSummary::where('user_id', auth()->id())
+                ->where('date', $date)
+                ->first();
+            if ($summary) {
+                $summary->total_sales += ($pricing['total_amount'] - $oldTotalAmount);
+                $summary->total_cost += ($pricing['cost_equivalent'] - $oldCostEquivalent);
+                $summary->total_profit += ($pricing['profit'] - $oldProfit);
+                $summary->save();
+            }
+
+            // Log the update
+            AuditLog::log('updated', 'sale', $sale->id, ['old' => $oldQuantity], ['new' => $newQuantity]);
+
+            return $sale->fresh();
+        });
     }
 }

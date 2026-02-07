@@ -2,10 +2,10 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useProducts } from '@/hooks/useProducts'
-import { useCreateSale, useTodaySales } from '@/hooks/useSales'
+import { useCreateSale, useTodaySales, useUpdateSale } from '@/hooks/useSales'
 import { useAIContext } from '@/hooks/useAIContext'
 import { saleSchema } from '@/utils/validation'
-import { SaleFormData, Product, SaleUnit } from '@/types'
+import { SaleFormData, Product, SaleUnit, Sale } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
@@ -14,19 +14,24 @@ import Badge from '@/components/ui/Badge'
 import { Loading } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { ReceiptModal } from '@/components/receipt/ReceiptModal'
-import { ShoppingCart, Receipt } from 'lucide-react'
-import { formatCurrency, formatTime, calculateProfit } from '@/utils/format'
+import { Modal } from '@/components/ui/Modal'
+import { ShoppingCart, Receipt, Edit2 } from 'lucide-react'
+import { formatCurrency, formatTime, calculateProfit, formatQuantityDisplay } from '@/utils/format'
 import AIChatWidget from '@/components/ai/AIChatWidget'
+import toast from 'react-hot-toast'
 
 const SalesEntryPage = () => {
   const { data: products, isLoading: productsLoading } = useProducts({ isActive: true })
   const { data: todaySales } = useTodaySales()
   const createSale = useCreateSale()
+  const updateSale = useUpdateSale()
   useAIContext() // Keep AI context synced
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [receiptSaleId, setReceiptSaleId] = useState<string | null>(null)
   const [showReceipt, setShowReceipt] = useState(false)
+  const [editingSale, setEditingSale] = useState<Sale | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   const {
     register,
@@ -106,6 +111,43 @@ const SalesEntryPage = () => {
   const handleViewReceipt = (saleId: string) => {
     setReceiptSaleId(saleId)
     setShowReceipt(true)
+  }
+
+  const handleEditSale = (sale: Sale) => {
+    setEditingSale(sale)
+    const product = products?.find(p => p.id === sale.productId)
+    setSelectedProduct(product || null)
+    
+    // Pre-fill form with sale data
+    setValue('productId', sale.productId)
+    setValue('unit', sale.unit)
+    setValue('quantity', sale.quantity)
+    setValue('paymentMethod', sale.paymentMethod)
+    setValue('description', sale.description || '')
+    
+    setShowEditModal(true)
+  }
+
+  const handleUpdateSale = async (data: SaleFormData) => {
+    if (!editingSale) return
+
+    try {
+      await updateSale.mutateAsync({ id: editingSale.id, data })
+      setShowEditModal(false)
+      setEditingSale(null)
+      reset()
+      setSelectedProduct(null)
+      toast.success('Sale updated successfully')
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update sale')
+    }
+  }
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false)
+    setEditingSale(null)
+    reset()
+    setSelectedProduct(null)
   }
 
   if (productsLoading) {
@@ -231,6 +273,23 @@ const SalesEntryPage = () => {
                     />
                     </div>
 
+                    {/* Description */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description (Optional)
+                      </label>
+                      <textarea
+                        {...register('description')}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                        rows={2}
+                        placeholder="Add a note about this sale..."
+                        maxLength={1000}
+                      />
+                      {errors.description && (
+                        <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+                      )}
+                    </div>
+
                     {/* Price Summary */}
                     {unit && quantity > 0 && (
                       <div className="p-4 bg-primary-50 rounded-lg space-y-3">
@@ -345,6 +404,15 @@ const SalesEntryPage = () => {
                           <span className="font-semibold text-gray-900">
                             {formatCurrency(sale.totalAmount)}
                           </span>
+                          {sale.canEdit && (
+                            <button
+                              onClick={() => handleEditSale(sale)}
+                              className="text-amber-600 hover:text-amber-700"
+                              title="Edit Sale"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
                             onClick={() => handleViewReceipt(sale.id)}
                             className="text-blue-600 hover:text-blue-700"
@@ -371,6 +439,108 @@ const SalesEntryPage = () => {
           saleId={receiptSaleId}
         />
       )}
+
+      {/* Edit Sale Modal */}
+      <Modal isOpen={showEditModal} onClose={handleCloseEditModal} title="Edit Sale">
+        <form onSubmit={handleSubmit(handleUpdateSale)} className="space-y-4 p-6">
+          {/* Product - Read only */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+            <input
+              type="text"
+              value={selectedProduct?.name || ''}
+              disabled
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600"
+            />
+          </div>
+
+          {/* Unit & Quantity */}
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Unit"
+              options={selectedProduct ? [
+                { value: 'bag', label: 'Bag' },
+                ...(selectedProduct.isRetailEnabled && selectedProduct.cupsPerBag ? [{ value: 'cup', label: 'Cup' }] : []),
+                ...(selectedProduct.isRetailEnabled && selectedProduct.bucketsPerBag ? [{ value: 'bucket', label: 'Bucket' }] : []),
+              ] : []}
+              error={errors.unit?.message}
+              {...register('unit')}
+            />
+
+            <Input
+              label="Quantity"
+              type="number"
+              step="0.01"
+              min="0.01"
+              error={errors.quantity?.message}
+              {...register('quantity', { valueAsNumber: true })}
+            />
+          </div>
+
+          {/* Payment Method */}
+          <Select
+            label="Payment Method"
+            options={[
+              { value: 'cash', label: 'Cash' },
+              { value: 'pos', label: 'POS' },
+              { value: 'bank_transfer', label: 'Bank Transfer' },
+            ]}
+            error={errors.paymentMethod?.message}
+            {...register('paymentMethod')}
+          />
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description (Optional)
+            </label>
+            <textarea
+              {...register('description')}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+              rows={2}
+              placeholder="Add a note about this sale..."
+              maxLength={1000}
+            />
+            {errors.description && (
+              <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+            )}
+          </div>
+
+          {/* Price Summary */}
+          {unit && quantity > 0 && (
+            <div className="p-4 bg-primary-50 rounded-lg space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Price per {unit}:</span>
+                <span className="font-semibold text-gray-900">
+                  {formatCurrency(pricePerUnit)}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-lg">
+                <span className="font-medium text-gray-900">Total Amount:</span>
+                <span className="font-bold text-primary-700">
+                  {formatCurrency(totalAmount)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            <Button type="button" variant="secondary" onClick={handleCloseEditModal} fullWidth>
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              fullWidth
+              isLoading={updateSale.isPending}
+              disabled={!selectedProduct || !unit || quantity < 0.01}
+            >
+              Update Sale
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* AI Chat Widget */}
       <AIChatWidget />

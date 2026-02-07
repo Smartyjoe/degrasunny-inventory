@@ -124,6 +124,26 @@ export const salesService = {
     return response.data.data
   },
 
+  // Update sale
+  updateSale: async (id: string, data: Partial<SaleFormData>): Promise<Sale> => {
+    if (USE_MOCK_DATA) {
+      await delay(500)
+      const index = sales.findIndex(s => s.id === id)
+      if (index === -1) throw new Error('Sale not found')
+      
+      // Recalculate if needed (simplified for mock)
+      sales[index] = {
+        ...sales[index],
+        ...data,
+      }
+      
+      return sales[index]
+    }
+    
+    const response = await api.put<ApiResponse<Sale>>(`/sales/${id}`, data)
+    return response.data.data
+  },
+
   // Delete sale
   deleteSale: async (id: string): Promise<void> => {
     if (USE_MOCK_DATA) {

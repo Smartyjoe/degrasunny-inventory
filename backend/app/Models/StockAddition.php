@@ -21,7 +21,7 @@ class StockAddition extends Model
     ];
 
     protected $casts = [
-        'quantity' => 'decimal:2',
+        'quantity' => 'decimal:4',
         'cost_price' => 'decimal:2',
         'total_cost' => 'decimal:2',
         'date' => 'date',

@@ -15,6 +15,7 @@ import ProductsPage from './pages/products/ProductsPage'
 import ProductDetailsPage from './pages/products/ProductDetailsPage'
 import DailyStockPage from './pages/stock/DailyStockPage'
 import SalesEntryPage from './pages/sales/SalesEntryPage'
+import SalesRecordsPage from './pages/sales/SalesRecordsPage'
 import StockAdditionPage from './pages/stock/StockAdditionPage'
 import ReportsPage from './pages/reports/ReportsPage'
 import SettingsPage from './pages/settings/SettingsPage'
@@ -48,6 +49,7 @@ function App() {
           <Route path="/products/:id" element={<ProductDetailsPage />} />
           <Route path="/daily-stock" element={<DailyStockPage />} />
           <Route path="/sales" element={<SalesEntryPage />} />
+          <Route path="/sales-records" element={<SalesRecordsPage />} />
           <Route path="/stock-addition" element={<StockAdditionPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
