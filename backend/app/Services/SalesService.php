@@ -59,6 +59,7 @@ class SalesService
                 'cost_equivalent' => $pricing['cost_equivalent'],
                 'profit' => $pricing['profit'],
                 'payment_method' => $data['payment_method'] ?? 'cash',
+                'description' => $data['description'] ?? null,
                 'date' => $date,
                 'user_id' => auth()->id(),
             ]);
