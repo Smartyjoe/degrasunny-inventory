@@ -1,11 +1,11 @@
-import { useRef, useState, KeyboardEvent, ClipboardEvent, ChangeEvent } from 'react'
+import { useRef, useState, useEffect, KeyboardEvent, ClipboardEvent, ChangeEvent } from 'react'
 
 interface OTPInputProps {
   length?: number
   value: string
   onChange: (value: string) => void
   disabled?: boolean
-  error?: boolean
+  autoFocus?: boolean
 }
 
 export default function OTPInput({ 
@@ -13,109 +13,116 @@ export default function OTPInput({
   value, 
   onChange, 
   disabled = false,
-  error = false 
+  autoFocus = true
 }: OTPInputProps) {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([])
-  const [otpValues, setOtpValues] = useState<string[]>(
-    value.split('').concat(Array(length).fill('')).slice(0, length)
-  )
+  const [otpValues, setOtpValues] = useState<string[]>(Array(length).fill(''))
 
-  const focusInput = (index: number) => {
-    if (inputRefs.current[index]) {
-      inputRefs.current[index]?.focus()
+  useEffect(() => {
+    const digits = value.split('').slice(0, length)
+    const padded = [...digits, ...Array(length).fill('')].slice(0, length)
+    setOtpValues(padded)
+  }, [value, length])
+
+  useEffect(() => {
+    if (autoFocus) {
+      inputRefs.current[0]?.focus()
+    }
+  }, [autoFocus])
+
+  const focusIndex = (index: number) => {
+    const input = inputRefs.current[index]
+    if (input) {
+      input.focus()
+      input.select()
     }
   }
 
   const handleChange = (index: number, e: ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value
+    const digit = e.target.value.replace(/\D/g, '').slice(-1)
+    const next = [...otpValues]
+    next[index] = digit
+    setOtpValues(next)
+    onChange(next.join(''))
 
-    // Only allow digits
-    if (val && !/^\d$/.test(val)) {
-      return
-    }
-
-    const newOtpValues = [...otpValues]
-    newOtpValues[index] = val
-    setOtpValues(newOtpValues)
-    onChange(newOtpValues.join(''))
-
-    // Auto-focus next input
-    if (val && index < length - 1) {
-      focusInput(index + 1)
+    if (digit && index < length - 1) {
+      focusIndex(index + 1)
     }
   }
 
   const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Backspace') {
       e.preventDefault()
-      const newOtpValues = [...otpValues]
-      
-      if (otpValues[index]) {
-        // Clear current field
-        newOtpValues[index] = ''
-        setOtpValues(newOtpValues)
-        onChange(newOtpValues.join(''))
+      const next = [...otpValues]
+      if (next[index]) {
+        next[index] = ''
+        setOtpValues(next)
+        onChange(next.join(''))
       } else if (index > 0) {
-        // Move to previous field and clear it
-        newOtpValues[index - 1] = ''
-        setOtpValues(newOtpValues)
-        onChange(newOtpValues.join(''))
-        focusInput(index - 1)
+        next[index - 1] = ''
+        setOtpValues(next)
+        onChange(next.join(''))
+        focusIndex(index - 1)
       }
-    } else if (e.key === 'ArrowLeft' && index > 0) {
-      focusInput(index - 1)
-    } else if (e.key === 'ArrowRight' && index < length - 1) {
-      focusInput(index + 1)
+    }
+
+    if (e.key === 'ArrowLeft' && index > 0) {
+      e.preventDefault()
+      focusIndex(index - 1)
+    }
+
+    if (e.key === 'ArrowRight' && index < length - 1) {
+      e.preventDefault()
+      focusIndex(index + 1)
     }
   }
 
   const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault()
-    const pastedData = e.clipboardData.getData('text/plain').trim()
-    
-    // Only process if pasted data contains only digits
-    if (!/^\d+$/.test(pastedData)) {
-      return
-    }
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, length)
+    if (!pasted) return
 
-    const pastedDigits = pastedData.slice(0, length).split('')
-    const newOtpValues = [...pastedDigits, ...Array(length).fill('')].slice(0, length)
-    
-    setOtpValues(newOtpValues)
-    onChange(newOtpValues.join(''))
+    const next = [...pasted.split(''), ...Array(length).fill('')].slice(0, length)
+    setOtpValues(next)
+    onChange(next.join(''))
 
-    // Focus the next empty input or last input
-    const nextEmptyIndex = newOtpValues.findIndex(val => !val)
-    focusInput(nextEmptyIndex === -1 ? length - 1 : nextEmptyIndex)
+    const nextEmpty = next.findIndex((d) => d === '')
+    focusIndex(nextEmpty === -1 ? length - 1 : nextEmpty)
   }
 
   return (
-    <div className="flex gap-2 justify-center">
-      {otpValues.map((digit, index) => (
-        <input
-          key={index}
-          ref={(el) => (inputRefs.current[index] = el)}
-          type="text"
-          inputMode="numeric"
-          maxLength={1}
-          value={digit}
-          onChange={(e) => handleChange(index, e)}
-          onKeyDown={(e) => handleKeyDown(index, e)}
-          onPaste={handlePaste}
-          disabled={disabled}
-          className={`
-            w-12 h-14 text-center text-2xl font-semibold
-            border-2 rounded-lg
-            transition-all duration-200
-            ${error 
-              ? 'border-red-500 focus:border-red-600 focus:ring-red-500' 
-              : 'border-gray-300 focus:border-purple-500 focus:ring-purple-500'
+    <div className="flex items-center justify-center gap-3 sm:gap-4">
+      {otpValues.map((digit, index) => {
+        const isFilled = Boolean(digit)
+
+        return (
+          <input
+            key={index}
+            ref={(el) => (inputRefs.current[index] = el)}
+            type="text"
+            inputMode="numeric"
+            autoComplete={index === 0 ? 'one-time-code' : 'off'}
+            pattern="\d*"
+            maxLength={1}
+            value={digit}
+            onChange={(e) => handleChange(index, e)}
+            onKeyDown={(e) => handleKeyDown(index, e)}
+            onPaste={handlePaste}
+            disabled={disabled}
+            aria-label={`Digit ${index + 1} of ${length}`}
+            className={
+              `w-11 h-12 sm:w-12 sm:h-14 md:w-14 md:h-16 ` +
+              `rounded-xl border bg-white text-center ` +
+              `text-2xl sm:text-3xl font-bold text-gray-900 ` +
+              `placeholder:text-gray-300 transition-all duration-150 ` +
+              `${isFilled ? 'border-primary-500' : 'border-gray-300'} ` +
+              `focus:border-primary-500 focus:ring-2 focus:ring-primary-200 ` +
+              `focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100`
             }
-            ${disabled ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}
-            focus:outline-none focus:ring-2
-          `}
-        />
-      ))}
+            placeholder="•"
+          />
+        )
+      })}
     </div>
   )
 }

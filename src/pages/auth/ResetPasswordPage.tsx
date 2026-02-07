@@ -11,17 +11,17 @@ import { authService } from '@/services/authService'
 export default function ResetPasswordPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  
+
   const [step, setStep] = useState<'verify' | 'reset'>('verify')
   const [email, setEmail] = useState((location.state as { email?: string })?.email || '')
   const [otp, setOtp] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [hasError, setHasError] = useState(false)
 
   useEffect(() => {
-    // Redirect if no email available
     if (!email) {
       toast.error('Please request a password reset first')
       navigate('/auth/forgot-password')
@@ -35,15 +35,14 @@ export default function ResetPasswordPage() {
     }
 
     setIsLoading(true)
-    setHasError(false)
 
     try {
       await authService.verifyPasswordResetOTP({ email, otp })
       toast.success('Code verified! Please set your new password.')
       setStep('reset')
     } catch (error: any) {
-      setHasError(true)
       toast.error(error.message || 'Invalid code. Please try again.')
+      setOtp('')
     } finally {
       setIsLoading(false)
     }
@@ -69,7 +68,7 @@ export default function ResetPasswordPage() {
         password,
         password_confirmation: confirmPassword,
       })
-      
+
       toast.success('Password reset successfully! Please login.')
       navigate('/auth/login')
     } catch (error: any) {
@@ -84,38 +83,26 @@ export default function ResetPasswordPage() {
       await authService.resendOTP({ email, type: 'password_reset' })
       toast.success('New reset code sent to your email')
       setOtp('')
-      setHasError(false)
     } catch (error: any) {
       toast.error(error.message || 'Failed to resend code')
     }
   }
 
+  useEffect(() => {
+    if (step === 'verify' && otp.length === 6 && !isLoading) {
+      handleVerifyOTP()
+    }
+  }, [otp])
+
   return (
-    <AuthLayout
-      title={step === 'verify' ? 'Verify Reset Code' : 'Set New Password'}
-      subtitle={step === 'verify' ? `Enter the code sent to ${email}` : 'Choose a strong password for your account'}
-    >
+    <AuthLayout title={step === 'verify' ? 'Verify your account' : 'Set new password'} subtitle="">
       {step === 'verify' ? (
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
-              Enter Reset Code
-            </label>
-            <OTPInput
-              value={otp}
-              onChange={(value) => {
-                setOtp(value)
-                setHasError(false)
-              }}
-              disabled={isLoading}
-              error={hasError}
-            />
-            {hasError && (
-              <p className="text-sm text-red-600 text-center mt-2">
-                Invalid code. Please try again.
-              </p>
-            )}
-          </div>
+        <div className="flex flex-col items-center text-center gap-y-4">
+          <p className="text-sm sm:text-base text-gray-600">
+            Enter the verification code sent to your email.
+          </p>
+
+          <OTPInput value={otp} onChange={setOtp} disabled={isLoading} />
 
           <Button
             onClick={handleVerifyOTP}
@@ -126,42 +113,74 @@ export default function ResetPasswordPage() {
             Verify Code
           </Button>
 
-          <ResendOTPButton onResend={handleResend} />
+          <p className="text-sm text-gray-600">
+            Haven't received the email?{' '}
+            <ResendOTPButton onResend={handleResend} variant="link" />
+          </p>
 
           <div className="text-center">
             <button
               onClick={() => navigate('/auth/forgot-password')}
-              className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
               Back to Forgot Password
             </button>
           </div>
         </div>
       ) : (
-        <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }} className="space-y-4">
-          <Input
-            label="New Password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter new password"
-            required
-            minLength={8}
-          />
+        <form onSubmit={(e) => { e.preventDefault(); handleResetPassword(); }} className="space-y-6">
+          <div className="text-center space-y-1">
+            <p className="text-sm text-gray-600">
+              Choose a strong password for your account
+            </p>
+            <p className="text-xs text-gray-500">
+              Must be at least 8 characters long
+            </p>
+          </div>
 
-          <Input
-            label="Confirm Password"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Confirm new password"
-            required
-            minLength={8}
-          />
+          <div className="space-y-4">
+            <div className="relative">
+              <Input
+                label="New Password"
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter new password"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+
+            <div className="relative">
+              <Input
+                label="Confirm Password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-9 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                {showConfirmPassword ? 'Hide' : 'Show'}
+              </button>
+            </div>
+          </div>
 
           <Button
             type="submit"
-            disabled={isLoading || !password || !confirmPassword}
+            disabled={isLoading || !password || !confirmPassword || password !== confirmPassword}
             isLoading={isLoading}
             className="w-full"
           >
@@ -172,7 +191,7 @@ export default function ResetPasswordPage() {
             <button
               type="button"
               onClick={() => setStep('verify')}
-              className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
               Back to Verification
             </button>

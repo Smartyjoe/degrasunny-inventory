@@ -12,16 +12,13 @@ export default function VerifyEmailPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { user, setAuth } = useAuthStore()
-  
+
   const [otp, setOtp] = useState('')
   const [isVerifying, setIsVerifying] = useState(false)
-  const [hasError, setHasError] = useState(false)
 
-  // Get email from location state or user
   const email = (location.state as { email?: string })?.email || user?.email || ''
 
   useEffect(() => {
-    // Redirect if no email available
     if (!email) {
       toast.error('Email address not found. Please login again.')
       navigate('/auth/login')
@@ -35,21 +32,17 @@ export default function VerifyEmailPage() {
     }
 
     setIsVerifying(true)
-    setHasError(false)
 
     try {
       const response = await authService.verifyEmail({ email, otp })
-      
-      // Update user in store
       if (user) {
         setAuth(response.user, useAuthStore.getState().token || '')
       }
-      
       toast.success(response.message)
       navigate('/dashboard')
     } catch (error: any) {
-      setHasError(true)
       toast.error(error.message || 'Verification failed. Please try again.')
+      setOtp('')
     } finally {
       setIsVerifying(false)
     }
@@ -60,37 +53,25 @@ export default function VerifyEmailPage() {
       await authService.resendOTP({ email, type: 'email_verification' })
       toast.success('New verification code sent to your email')
       setOtp('')
-      setHasError(false)
     } catch (error: any) {
       toast.error(error.message || 'Failed to resend code')
     }
   }
 
+  useEffect(() => {
+    if (otp.length === 6 && !isVerifying) {
+      handleVerify()
+    }
+  }, [otp])
+
   return (
-    <AuthLayout
-      title="Verify Your Email"
-      subtitle={`We've sent a 6-digit code to ${email}`}
-    >
-      <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
-            Enter Verification Code
-          </label>
-          <OTPInput
-            value={otp}
-            onChange={(value) => {
-              setOtp(value)
-              setHasError(false)
-            }}
-            disabled={isVerifying}
-            error={hasError}
-          />
-          {hasError && (
-            <p className="text-sm text-red-600 text-center mt-2">
-              Invalid code. Please try again.
-            </p>
-          )}
-        </div>
+    <AuthLayout title="Verify your account" subtitle="">
+      <div className="flex flex-col items-center text-center gap-y-4">
+        <p className="text-sm sm:text-base text-gray-600">
+          Enter the verification code sent to your email.
+        </p>
+
+        <OTPInput value={otp} onChange={setOtp} disabled={isVerifying} />
 
         <Button
           onClick={handleVerify}
@@ -101,12 +82,15 @@ export default function VerifyEmailPage() {
           Verify Email
         </Button>
 
-        <ResendOTPButton onResend={handleResend} />
+        <p className="text-sm text-gray-600">
+          Haven't received the email?{' '}
+          <ResendOTPButton onResend={handleResend} variant="link" />
+        </p>
 
         <div className="text-center">
           <button
             onClick={() => navigate('/auth/login')}
-            className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+            className="text-sm text-primary-600 hover:text-primary-700 font-medium"
           >
             Back to Login
           </button>

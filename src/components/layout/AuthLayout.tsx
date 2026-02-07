@@ -1,6 +1,11 @@
 import { Outlet } from 'react-router-dom'
+import { ReactNode } from 'react'
 
-const AuthLayout = () => {
+interface AuthLayoutProps {
+  children?: ReactNode
+}
+
+const AuthLayout = ({ children }: AuthLayoutProps) => {
   const currentYear = new Date().getFullYear()
 
   return (
@@ -21,7 +26,7 @@ const AuthLayout = () => {
 
         {/* Auth Content */}
         <div className="bg-white rounded-lg shadow-xl p-8">
-          <Outlet />
+          {children ?? <Outlet />}
         </div>
 
         {/* Footer */}
