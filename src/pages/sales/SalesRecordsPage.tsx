@@ -14,7 +14,6 @@ import { ReceiptModal } from '@/components/receipt/ReceiptModal'
 import { BarChart3, Download, Edit2, Receipt, Search, TrendingUp } from 'lucide-react'
 import { formatCurrency, formatDate, formatTime, formatQuantityDisplay } from '@/utils/format'
 import { Sale, SaleFormData, Product } from '@/types'
-import { cn } from '@/utils/cn'
 import toast from 'react-hot-toast'
 
 const SalesRecordsPage = () => {
@@ -39,10 +38,10 @@ const SalesRecordsPage = () => {
   const quantity = watch('quantity')
   const pricePerUnit = selectedProduct && unit && quantity > 0
     ? unit === 'bag'
-      ? selectedProduct.pricePerBag
+      ? selectedProduct.price
       : unit === 'cup'
-      ? selectedProduct.pricePerCup || 0
-      : selectedProduct.pricePerBucket || 0
+      ? (selectedProduct.price / (selectedProduct.cupsPerBag || 1))
+      : (selectedProduct.price / (selectedProduct.bucketsPerBag || 1))
     : 0
   const totalAmount = pricePerUnit * quantity
 
@@ -135,7 +134,7 @@ const SalesRecordsPage = () => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loading size="lg" />
+        <Loading />
       </div>
     )
   }
@@ -151,9 +150,9 @@ const SalesRecordsPage = () => {
         <Button
           onClick={handleExport}
           variant="secondary"
-          icon={Download}
           disabled={salesCount === 0}
         >
+          <Download className="w-4 h-4 mr-2" />
           Export CSV
         </Button>
       </div>
@@ -254,11 +253,11 @@ const SalesRecordsPage = () => {
         </CardHeader>
         <CardContent>
           {filteredSales.length === 0 ? (
-            <EmptyState
-              icon={BarChart3}
-              message="No sales records found"
-              description="Try adjusting your filters or date range"
-            />
+            <div className="text-center py-12">
+              <BarChart3 className="w-12 h-12 mx-auto text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-1">No sales records found</h3>
+              <p className="text-sm text-gray-500">Try adjusting your filters or date range</p>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -292,7 +291,7 @@ const SalesRecordsPage = () => {
                         </div>
                       </td>
                       <td className="py-3 px-4 text-center">
-                        <Badge variant="primary" size="sm">
+                        <Badge variant="info" size="sm">
                           {formatQuantityDisplay(sale.quantity)} {sale.unit}
                         </Badge>
                       </td>
@@ -313,7 +312,7 @@ const SalesRecordsPage = () => {
                         <Badge
                           variant={
                             sale.paymentMethod === 'cash' ? 'success' :
-                            sale.paymentMethod === 'pos' ? 'primary' : 'secondary'
+                            sale.paymentMethod === 'pos' ? 'info' : 'default'
                           }
                           size="sm"
                         >
