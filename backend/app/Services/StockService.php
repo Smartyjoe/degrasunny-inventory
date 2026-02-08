@@ -29,27 +29,15 @@ class StockService
      */
     public function initializeDailyStock(Product $product, Carbon $date): StockLedger
     {
-        // Use updateOrCreate to avoid duplicate entry errors
-        $previousDay = $date->copy()->subDay();
-        $previousLedger = StockLedger::where('product_id', $product->id)
-            ->where('date', $previousDay)
-            ->first();
+        return $this->ledgerService->getOrCreateDailyLedger($product, $date);
+    }
 
-        $openingStock = $previousLedger ? $previousLedger->closing_stock : $product->current_stock;
-
-        return StockLedger::updateOrCreate(
-            [
-                'product_id' => $product->id,
-                'date' => $date,
-            ],
-            [
-                'user_id' => $product->user_id,
-                'opening_stock' => $openingStock,
-                'stock_added' => 0,
-                'stock_sold' => 0,
-                'closing_stock' => $openingStock,
-            ]
-        );
+    /**
+     * Recalculate daily ledger for date
+     */
+    public function recalculateDailyLedger(Product $product, Carbon $date): StockLedger
+    {
+        return $this->ledgerService->recalculateDailyLedger($product, $date);
     }
 
     /**
@@ -92,8 +80,8 @@ class StockService
             // Update product current stock
             $product->increment('current_stock', $data['quantity']);
 
-            // Record in ledger (centralized service handles everything)
-            $this->ledgerService->recordStockAdded($product, $data['quantity'], $date);
+            // Recalculate ledger for the date based on transactions
+            $this->ledgerService->recalculateDailyLedger($product, $date);
 
             // Update cost price if provided
             if (isset($data['update_cost_price']) && $data['update_cost_price']) {
@@ -123,8 +111,8 @@ class StockService
             // Update product stock
             $product->decrement('current_stock', $quantity);
 
-            // Record in ledger (centralized service handles everything)
-            $this->ledgerService->recordStockSold($product, $quantity, $date);
+            // Recalculate ledger for the sale date based on transactions
+            $this->ledgerService->recalculateDailyLedger($product, $date);
         });
     }
 
@@ -177,6 +165,24 @@ class StockService
             ->where('date', $date)
             ->get()
             ->map(function ($ledger) {
+                $stockSoldDisplay = null;
+
+                if ($ledger->product) {
+                    $retailSales = $ledger->product->sales()
+                        ->whereDate('date', $ledger->date->format('Y-m-d'))
+                        ->where('unit', '!=', 'bag')
+                        ->get();
+
+                    if ($retailSales->isNotEmpty()) {
+                        $grouped = $retailSales->groupBy('unit')->map(function ($sales, $unit) use ($ledger) {
+                            $totalQty = $sales->sum('quantity');
+                            return $ledger->product->formatRetailUnit($unit, (float) $totalQty);
+                        });
+
+                        $stockSoldDisplay = $grouped->values()->implode(', ');
+                    }
+                }
+
                 return [
                     'id' => (string) $ledger->id,
                     'productId' => (string) $ledger->product_id,
@@ -185,6 +191,7 @@ class StockService
                     'openingStock' => (float) $ledger->opening_stock,
                     'stockAdded' => (float) $ledger->stock_added,
                     'stockSold' => (float) $ledger->stock_sold,
+                    'stockSoldDisplay' => $stockSoldDisplay,
                     'closingStock' => (float) $ledger->closing_stock,
                 ];
             })
@@ -220,11 +227,8 @@ class StockService
                 'notes' => $data['notes'] ?? $stockAddition->notes,
             ]);
 
-            // Update stock ledger for the addition date
-            $ledger = $this->ledgerService->getOrCreateDailyLedger($product, $date);
-            $ledger->stock_added += $quantityDiff;
-            $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
-            $ledger->save();
+            // Recalculate ledger for the addition date
+            $this->ledgerService->recalculateDailyLedger($product, $date);
 
             // Log the update
             AuditLog::log('updated', 'stock_addition', $stockAddition->id, ['old' => $oldQuantity], ['new' => $newQuantity]);

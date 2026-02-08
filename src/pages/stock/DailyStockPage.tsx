@@ -48,6 +48,7 @@ const DailyStockPage = () => {
       openingStock: dailyStock?.openingStock ?? product.currentStock,
       stockAdded: dailyStock?.stockAdded ?? 0,
       stockSold: dailyStock?.stockSold ?? 0,
+      stockSoldDisplay: dailyStock?.stockSoldDisplay ?? null,
       closingStock: dailyStock?.closingStock ?? product.currentStock,
     }
   })
@@ -179,6 +180,11 @@ const DailyStockPage = () => {
                         )}>
                           {item.stockSold > 0 ? `-${formatQuantityDisplay(item.stockSold)}` : '-'}
                         </span>
+                        {item.stockSoldDisplay && (
+                          <div className="text-xs text-gray-400 italic mt-1">
+                            {item.stockSoldDisplay}
+                          </div>
+                        )}
                       </td>
                       <td className="py-4 px-4 text-center">
                         <span className="font-bold text-gray-900">

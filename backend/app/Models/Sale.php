@@ -96,4 +96,28 @@ class Sale extends Model
         }
         return ($this->profit / $this->total_amount) * 100;
     }
+
+    /**
+     * Get quantity in bags for stock calculations
+     */
+    public function getQuantityInBagsAttribute(): float
+    {
+        if (!$this->product) {
+            return (float) $this->quantity;
+        }
+
+        return (float) $this->product->convertToBags($this->unit, (float) $this->quantity);
+    }
+
+    /**
+     * Get retail display string for daily stock
+     */
+    public function getRetailDisplayAttribute(): ?string
+    {
+        if (!$this->product || $this->unit === 'bag') {
+            return null;
+        }
+
+        return $this->product->formatRetailUnit($this->unit, (float) $this->quantity);
+    }
 }

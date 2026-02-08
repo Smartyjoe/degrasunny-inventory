@@ -110,4 +110,29 @@ class Product extends Model
         }
         return (($this->selling_price - $this->cost_price) / $this->selling_price) * 100;
     }
+
+    /**
+     * Convert a quantity to bags based on unit type
+     */
+    public function convertToBags(string $unit, float $quantity): float
+    {
+        return match ($unit) {
+            'bag' => $quantity,
+            'cup' => $this->cups_per_bag > 0 ? $quantity / $this->cups_per_bag : 0,
+            'bucket' => $this->buckets_per_bag > 0 ? $quantity / $this->buckets_per_bag : 0,
+            default => 0,
+        };
+    }
+
+    /**
+     * Get display label for retail unit
+     */
+    public function formatRetailUnit(string $unit, float $quantity): string
+    {
+        $label = $unit === 'bucket' ? 'bucket' : 'cup';
+        $isPlural = abs($quantity - 1) > 0.0001;
+        $formatted = rtrim(rtrim(number_format($quantity, 4, '.', ''), '0'), '.');
+
+        return $formatted . ' ' . ($isPlural ? $label . 's' : $label);
+    }
 }

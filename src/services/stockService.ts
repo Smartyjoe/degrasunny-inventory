@@ -11,6 +11,7 @@ type DailyStock = {
   openingStock: number
   stockAdded: number
   stockSold: number
+  stockSoldDisplay?: string | null
   closingStock: number
 }
 

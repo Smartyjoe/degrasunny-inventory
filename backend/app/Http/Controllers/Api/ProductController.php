@@ -69,7 +69,12 @@ class ProductController extends Controller
      */
     public function store(ProductRequest $request): JsonResponse
     {
-        $product = Product::create($request->validated());
+        $payload = $request->validated();
+        if (!isset($payload['current_stock'])) {
+            $payload['current_stock'] = 0;
+        }
+
+        $product = Product::create($payload);
 
         AuditLog::log('created', 'product', $product->id, null, $product->toArray());
 

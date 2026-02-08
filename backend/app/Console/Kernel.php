@@ -40,6 +40,8 @@ class Kernel extends ConsoleKernel
             ->timezone('Africa/Lagos')
             ->withoutOverlapping()
             ->runInBackground();
+
+        // NOTE: stock:rebuild-ledgers is an admin command (manual run only)
     }
 
     /**

@@ -63,13 +63,47 @@ class StockLedgerService
     private function getPreviousClosingStock(Product $product, Carbon $date): float
     {
         $previousDate = $date->copy()->subDay()->toDateString();
-        
+
         $previousLedger = StockLedger::where('user_id', $product->user_id)
             ->where('product_id', $product->id)
             ->where('date', $previousDate)
             ->first();
 
-        return $previousLedger ? $previousLedger->closing_stock : $product->current_stock;
+        // IMPORTANT: Opening stock should never use product.current_stock
+        // If no previous ledger exists, opening stock is zero
+        return $previousLedger ? $previousLedger->closing_stock : 0;
+    }
+
+    /**
+     * Recalculate daily ledger values from transactions
+     */
+    public function recalculateDailyLedger(Product $product, Carbon $date): StockLedger
+    {
+        return DB::transaction(function () use ($product, $date) {
+            $ledger = $this->getOrCreateDailyLedger($product, $date);
+
+            $dateString = $date->toDateString();
+
+            $stockAdded = $product->stockAdditions()
+                ->whereDate('date', $dateString)
+                ->sum('quantity');
+
+            $sales = $product->sales()
+                ->whereDate('date', $dateString)
+                ->get();
+
+            $stockSold = $sales->sum(function ($sale) {
+                return $sale->quantity_in_bags;
+            });
+
+            $ledger->stock_added = (float) $stockAdded;
+            $ledger->stock_sold = (float) $stockSold;
+            $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
+
+            $ledger->save();
+
+            return $ledger;
+        });
     }
 
     /**

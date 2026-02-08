@@ -130,11 +130,8 @@ class SalesService
             // Restore stock
             $product->increment('current_stock', $bagsToRestore);
 
-            // Update stock ledger (use centralized service)
-            $ledger = $this->ledgerService->getOrCreateDailyLedger($product, $date);
-            $ledger->stock_sold -= $bagsToRestore;
-            $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
-            $ledger->save();
+            // Recalculate ledger for the sale date based on transactions
+            $this->ledgerService->recalculateDailyLedger($product, $date);
 
             // Update profit summary
             $summary = ProfitSummary::where('user_id', auth()->id())
@@ -256,11 +253,8 @@ class SalesService
                 'description' => $data['description'] ?? $sale->description,
             ]);
 
-            // Update stock ledger for the sale date
-            $ledger = $this->ledgerService->getOrCreateDailyLedger($product, $date);
-            $ledger->stock_sold += $bagsDiff;
-            $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
-            $ledger->save();
+            // Recalculate ledger for the sale date based on transactions
+            $this->ledgerService->recalculateDailyLedger($product, $date);
 
             // Update profit summary
             $summary = ProfitSummary::where('user_id', auth()->id())
