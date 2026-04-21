@@ -86,7 +86,7 @@ class StockController extends Controller
      */
     public function getStockAdditions(Request $request): JsonResponse
     {
-        $query = StockAddition::with('product')->orderBy('date', 'desc');
+        $query = StockAddition::with('product')->orderBy('created_at', 'desc');
 
         if ($request->has('product_id')) {
             $query->where('product_id', $request->product_id);
