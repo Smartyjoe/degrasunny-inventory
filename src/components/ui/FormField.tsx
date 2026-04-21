@@ -1,36 +1,32 @@
-import { InputHTMLAttributes, forwardRef, useState } from 'react'
+import { InputHTMLAttributes, forwardRef } from 'react'
 import { cn } from '@/utils/cn'
-import { Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react'
+import { CheckCircle, XCircle } from 'lucide-react'
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-  label?: string
+interface FormFieldProps extends InputHTMLAttributes<HTMLInputElement> {
+  label: string
   error?: string
   success?: string
   helperText?: string
   icon?: React.ReactNode
   showValidState?: boolean
+  required?: boolean
 }
 
-const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, label, error, success, helperText, icon, id, type, showValidState, ...props }, ref) => {
+const FormField = forwardRef<HTMLInputElement, FormFieldProps>(
+  ({ label, error, success, helperText, icon, showValidState, required, id, ...props }, ref) => {
     const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`
-    const [showPassword, setShowPassword] = useState(false)
-    
-    const isPassword = type === 'password'
-    const inputType = isPassword ? (showPassword ? 'text' : 'password') : type
     const hasError = !!error
     const hasSuccess = !!success && !error && showValidState
     
     return (
       <div className="w-full">
-        {label && (
-          <label
-            htmlFor={inputId}
-            className="block text-sm font-medium text-gray-700 mb-1.5"
-          >
-            {label}
-          </label>
-        )}
+        <label
+          htmlFor={inputId}
+          className="block text-sm font-medium text-gray-700 mb-1.5"
+        >
+          {label}
+          {required && <span className="text-danger-500 ml-0.5">*</span>}
+        </label>
         
         <div className="relative">
           {icon && (
@@ -42,38 +38,22 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
           <input
             ref={ref}
             id={inputId}
-            type={inputType}
             className={cn(
               'w-full px-4 py-3 text-base border rounded-lg transition-colors focus-ring',
               'placeholder:text-gray-400',
               icon && 'pl-10',
-              isPassword && 'pr-10',
               hasError
                 ? 'border-danger-500 focus:border-danger-500 focus:ring-danger-500'
                 : hasSuccess
                 ? 'border-success-500 focus:border-success-500 focus:ring-success-500'
                 : 'border-gray-300 focus:border-primary-500 focus:ring-primary-500',
               props.disabled && 'bg-gray-100 cursor-not-allowed',
-              className
+              props.className
             )}
+            aria-invalid={hasError ? 'true' : 'false'}
+            aria-describedby={hasError ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined}
             {...props}
           />
-          
-          {isPassword && (
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors focus:outline-none"
-              tabIndex={-1}
-              aria-label={showPassword ? 'Hide password' : 'Show password'}
-            >
-              {showPassword ? (
-                <EyeOff className="w-5 h-5" />
-              ) : (
-                <Eye className="w-5 h-5" />
-              )}
-            </button>
-          )}
           
           {hasError && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -89,27 +69,39 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
         </div>
         
         {error && (
-          <div className="flex items-center gap-1.5 mt-1.5 text-sm text-danger-600">
-            <XCircle className="w-4 h-4" />
+          <div 
+            id={`${inputId}-error`}
+            className="flex items-center gap-1.5 mt-1.5 text-sm text-danger-600"
+            role="alert"
+          >
+            <XCircle className="w-4 h-4 flex-shrink-0" />
             <span>{error}</span>
           </div>
         )}
         
         {success && !error && showValidState && (
-          <div className="flex items-center gap-1.5 mt-1.5 text-sm text-success-600">
-            <CheckCircle className="w-4 h-4" />
+          <div 
+            id={`${inputId}-success`}
+            className="flex items-center gap-1.5 mt-1.5 text-sm text-success-600"
+          >
+            <CheckCircle className="w-4 h-4 flex-shrink-0" />
             <span>{success}</span>
           </div>
         )}
         
         {helperText && !error && !success && (
-          <p className="mt-1.5 text-sm text-gray-500">{helperText}</p>
+          <p 
+            id={`${inputId}-helper`}
+            className="mt-1.5 text-sm text-gray-500"
+          >
+            {helperText}
+          </p>
         )}
       </div>
     )
   }
 )
 
-Input.displayName = 'Input'
+FormField.displayName = 'FormField'
 
-export default Input
+export default FormField

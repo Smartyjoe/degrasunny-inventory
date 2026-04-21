@@ -1,6 +1,13 @@
 import axios, { AxiosInstance, AxiosError } from 'axios'
 import toast from 'react-hot-toast'
 
+interface ApiErrorResponse {
+  message?: string
+  error?: string
+  errors?: Record<string, string[]>
+  [key: string]: unknown
+}
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
 
 // Create axios instance
@@ -27,26 +34,58 @@ api.interceptors.request.use(
   }
 )
 
+// Extract error message from response
+function getErrorMessage(error: AxiosError<ApiErrorResponse>): string {
+  const data = error.response?.data
+  
+  // Check for validation errors (Laravel style)
+  if (data?.errors) {
+    const firstField = Object.keys(data.errors)[0]
+    if (firstField && data.errors[firstField]?.[0]) {
+      return data.errors[firstField][0]
+    }
+  }
+  
+  // Check for direct message
+  if (data?.message) {
+    return data.message
+  }
+  
+  // Check for error key
+  if (data?.error) {
+    return data.error
+  }
+  
+  // Fallback to axios error message
+  return error.message || 'An error occurred'
+}
+
 // Response interceptor - Handle errors globally
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError<{ message?: string }>) => {
-    const message = error.response?.data?.message || error.message || 'An error occurred'
+  (error: AxiosError<ApiErrorResponse>) => {
+    const message = getErrorMessage(error)
+    const status = error.response?.status
     
     // Handle specific error codes
-    if (error.response?.status === 401) {
-      // Unauthorized - clear auth and redirect to login
+    if (status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('user')
       window.location.href = '/login'
       toast.error('Session expired. Please login again.')
-    } else if (error.response?.status === 403) {
+    } else if (status === 403) {
       toast.error('You do not have permission to perform this action.')
-    } else if (error.response?.status === 404) {
+    } else if (status === 404) {
       toast.error('Resource not found.')
-    } else if (error.response?.status === 500) {
+    } else if (status === 422) {
+      // Validation errors - show but don't duplicate toast
+      // The component will handle displaying field errors
+      console.warn('Validation error:', message)
+    } else if (status === 429) {
+      toast.error('Too many requests. Please wait a moment.')
+    } else if (status && status >= 500) {
       toast.error('Server error. Please try again later.')
-    } else {
+    } else if (status !== 422) {
       toast.error(message)
     }
     

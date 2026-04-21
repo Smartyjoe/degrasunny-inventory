@@ -7,6 +7,7 @@ import { authService } from '@/services/authService'
 import { useAuthStore } from '@/store/authStore'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
+import { Alert } from '@/components/ui/Alert'
 import toast from 'react-hot-toast'
 import { useState } from 'react'
 
@@ -19,6 +20,7 @@ const LoginPage = () => {
   const navigate = useNavigate()
   const setAuth = useAuthStore((state) => state.setAuth)
   const [isLoading, setIsLoading] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   const {
     register,
@@ -29,6 +31,7 @@ const LoginPage = () => {
   })
 
   const onSubmit = async (data: LoginFormData) => {
+    setFormError(null)
     setIsLoading(true)
     try {
       const response = await authService.login(data)
@@ -36,7 +39,9 @@ const LoginPage = () => {
       toast.success('Welcome back!')
       navigate('/dashboard')
     } catch (error: any) {
-      toast.error(error.message || 'Login failed')
+      const message = error.response?.data?.message || error.message || 'Login failed'
+      setFormError(message)
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }
@@ -51,6 +56,14 @@ const LoginPage = () => {
         </p>
       </div>
 
+      {formError && (
+        <Alert
+          variant="error"
+          description={formError}
+          className="mb-4"
+        />
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Input
           label="Email Address"
@@ -58,6 +71,7 @@ const LoginPage = () => {
           placeholder="trader@example.com"
           icon={<Mail className="w-5 h-5" />}
           error={errors.email?.message}
+          autoComplete="email"
           {...register('email')}
         />
 
@@ -67,6 +81,7 @@ const LoginPage = () => {
           placeholder="••••••••"
           icon={<Lock className="w-5 h-5" />}
           error={errors.password?.message}
+          autoComplete="current-password"
           {...register('password')}
         />
 

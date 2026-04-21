@@ -7,6 +7,7 @@ import { authService } from '@/services/authService'
 import { useAuthStore } from '@/store/authStore'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
+import { Alert } from '@/components/ui/Alert'
 import toast from 'react-hot-toast'
 import { useState } from 'react'
 
@@ -22,6 +23,7 @@ const RegisterPage = () => {
   const navigate = useNavigate()
   const setAuth = useAuthStore((state) => state.setAuth)
   const [isLoading, setIsLoading] = useState(false)
+  const [formError, setFormError] = useState<string | null>(null)
 
   const {
     register,
@@ -32,6 +34,7 @@ const RegisterPage = () => {
   })
 
   const onSubmit = async (data: RegisterFormData) => {
+    setFormError(null)
     setIsLoading(true)
     try {
       const response = await authService.register(data)
@@ -39,7 +42,9 @@ const RegisterPage = () => {
       toast.success('Account created successfully!')
       navigate('/dashboard')
     } catch (error: any) {
-      toast.error(error.message || 'Registration failed')
+      const message = error.response?.data?.message || error.message || 'Registration failed'
+      setFormError(message)
+      toast.error(message)
     } finally {
       setIsLoading(false)
     }
@@ -54,6 +59,14 @@ const RegisterPage = () => {
         </p>
       </div>
 
+      {formError && (
+        <Alert
+          variant="error"
+          description={formError}
+          className="mb-4"
+        />
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <Input
           label="Full Name"
@@ -61,6 +74,7 @@ const RegisterPage = () => {
           placeholder="John Trader"
           icon={<User className="w-5 h-5" />}
           error={errors.name?.message}
+          autoComplete="name"
           {...register('name')}
         />
 
@@ -70,6 +84,7 @@ const RegisterPage = () => {
           placeholder="trader@example.com"
           icon={<Mail className="w-5 h-5" />}
           error={errors.email?.message}
+          autoComplete="email"
           {...register('email')}
         />
 
@@ -88,6 +103,7 @@ const RegisterPage = () => {
           placeholder="••••••••"
           icon={<Lock className="w-5 h-5" />}
           error={errors.password?.message}
+          autoComplete="new-password"
           {...register('password')}
         />
 
@@ -97,6 +113,7 @@ const RegisterPage = () => {
           placeholder="••••••••"
           icon={<Lock className="w-5 h-5" />}
           error={errors.confirmPassword?.message}
+          autoComplete="new-password"
           {...register('confirmPassword')}
         />
 
