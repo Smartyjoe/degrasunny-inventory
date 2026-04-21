@@ -76,6 +76,7 @@ export interface Sale {
   description?: string
   date: string
   createdAt: string
+  editable?: boolean
 }
 
 export interface SaleFormData {
@@ -107,10 +108,12 @@ export interface StockAddition {
   stockBefore?: number
   stockAfter?: number
   costPrice: number
-  totalCost?: number
+  totalCost: number
+  supplier?: string
   date: string
   notes?: string
   createdAt?: string
+  editable?: boolean
 }
 
 // Dashboard Types

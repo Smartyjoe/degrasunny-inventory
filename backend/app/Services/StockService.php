@@ -114,6 +114,61 @@ class StockService
     }
 
     /**
+     * Update stock addition
+     */
+    public function updateStockAddition(StockAddition $addition, array $data): StockAddition
+    {
+        return DB::transaction(function () use ($addition, $data) {
+            $product = $addition->product;
+            $oldQuantity = $addition->quantity;
+            $oldDate = $addition->date;
+
+            // Reverse old stock impact
+            $product->decrement('current_stock', $oldQuantity);
+            $this->ledgerService->recordStockDeducted($product, $oldQuantity, $oldDate);
+
+            // Apply new values
+            $newQuantity = $data['quantity'] ?? $addition->quantity;
+            $newDate = isset($data['date']) ? Carbon::parse($data['date']) : $addition->date;
+
+            // Recalculate stock before/after
+            $stockBefore = (float) $product->current_stock;
+            $stockAfter = $stockBefore + $newQuantity;
+
+            // Update addition record
+            $addition->update([
+                'quantity' => $newQuantity,
+                'stock_before' => $stockBefore,
+                'stock_after' => $stockAfter,
+                'cost_price' => $data['cost_price'] ?? $addition->cost_price,
+                'supplier' => $data['supplier'] ?? $addition->supplier,
+                'date' => $newDate,
+                'notes' => $data['notes'] ?? $addition->notes,
+            ]);
+
+            // Apply new stock
+            $product->increment('current_stock', $newQuantity);
+            $this->ledgerService->recordStockAdded($product, $newQuantity, $newDate);
+
+            // Update cost price if provided and requested
+            if (isset($data['cost_price']) && isset($data['update_cost_price']) && $data['update_cost_price']) {
+                $product->update(['cost_price' => $data['cost_price']]);
+            }
+
+            // Recalculate ledgers
+            $this->ledgerService->recalculateDailyLedger($product, $newDate);
+            if ($oldDate->format('Y-m-d') !== $newDate->format('Y-m-d')) {
+                $this->ledgerService->recalculateDailyLedger($product, $oldDate);
+            }
+
+            // Log the update
+            AuditLog::log('updated', 'stock_addition', $addition->id, null, $addition->toArray());
+
+            return $addition->fresh('product');
+        });
+    }
+
+    /**
      * Update stock after sale
      * 
      * REFACTORED: Now uses centralized StockLedgerService

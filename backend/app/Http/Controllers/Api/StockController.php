@@ -118,8 +118,93 @@ class StockController extends Controller
                     'supplier' => $addition->supplier,
                     'date' => $addition->date->format('Y-m-d'),
                     'notes' => $addition->notes,
+                    'createdAt' => $addition->created_at->toIso8601String(),
                 ];
             })->values(),
+        ]);
+    }
+
+    /**
+     * Update stock addition (within 2 hours)
+     */
+    public function updateStockAddition(StockAdditionRequest $request, StockAddition $addition): JsonResponse
+    {
+        // Verify ownership
+        $product = $addition->product;
+        if ((string) $product->user_id !== (string) $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stock addition not found or access denied',
+            ], 404);
+        }
+
+        // Check if within edit window (2 hours = 120 minutes)
+        $editWindowMinutes = 120;
+        if (now()->diffInMinutes($addition->created_at) > $editWindowMinutes) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stock addition can no longer be edited. Edit window has expired (2 hours).',
+                'data' => [
+                    'editable' => false,
+                    'expires_at' => $addition->created_at->addMinutes($editWindowMinutes)->toIso8601String(),
+                ]
+            ], 403);
+        }
+
+        try {
+            $updatedAddition = $this->stockService->updateStockAddition($addition, $request->validated());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Stock addition updated successfully',
+                'data' => [
+                    'id' => (string) $updatedAddition->id,
+                    'productId' => (string) $updatedAddition->product_id,
+                    'quantity' => (float) $updatedAddition->quantity,
+                    'stockBefore' => (float) $updatedAddition->stock_before,
+                    'stockAfter' => (float) $updatedAddition->stock_after,
+                    'costPrice' => (float) $updatedAddition->cost_price,
+                    'totalCost' => (float) $updatedAddition->total_cost,
+                    'supplier' => $updatedAddition->supplier,
+                    'date' => $updatedAddition->date->format('Y-m-d'),
+                    'notes' => $updatedAddition->notes,
+                    'createdAt' => $updatedAddition->created_at->toIso8601String(),
+                    'editable' => true,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => null,
+            ], 400);
+        }
+    }
+
+    /**
+     * Check if stock addition is editable
+     */
+    public function checkStockAdditionEditable(Request $request, StockAddition $addition): JsonResponse
+    {
+        $product = $addition->product;
+        if ((string) $product->user_id !== (string) $request->user()->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stock addition not found or access denied',
+            ], 404);
+        }
+
+        $editWindowMinutes = 120;
+        $minutesRemaining = $editWindowMinutes - now()->diffInMinutes($addition->created_at);
+        $isEditable = $minutesRemaining > 0;
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'editable' => $isEditable,
+                'minutes_remaining' => max(0, $minutesRemaining),
+                'expires_at' => $addition->created_at->addMinutes($editWindowMinutes)->toIso8601String(),
+            ],
         ]);
     }
 }

@@ -124,4 +124,24 @@ export const stockService = {
     const response = await api.get<ApiResponse<StockAddition[]>>('/stock/additions', { params: filters })
     return response.data.data
   },
+
+  // Update stock addition
+  updateStockAddition: async (id: string, data: Partial<StockAddition>): Promise<StockAddition> => {
+    if (USE_MOCK_DATA) {
+      throw new Error('Update not supported in mock mode')
+    }
+    
+    const response = await api.put<ApiResponse<StockAddition>>(`/stock/additions/${id}`, data)
+    return response.data.data
+  },
+
+  // Check if stock addition is editable
+  checkStockAdditionEditable: async (id: string): Promise<{editable: boolean, minutes_remaining: number, expires_at: string}> => {
+    if (USE_MOCK_DATA) {
+      return { editable: true, minutes_remaining: 120, expires_at: '' }
+    }
+    
+    const response = await api.get<ApiResponse<{editable: boolean, minutes_remaining: number, expires_at: string}>>(`/stock/additions/${id}/editable`)
+    return response.data.data
+  },
 }

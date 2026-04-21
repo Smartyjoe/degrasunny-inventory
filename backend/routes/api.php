@@ -22,6 +22,18 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+    
+    // Email verification OTP routes
+    Route::post('/send-email-verification-otp', [AuthController::class, 'sendEmailVerificationOTP']);
+    Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
+    
+    // Password reset OTP routes
+    Route::post('/send-password-reset-otp', [AuthController::class, 'sendPasswordResetOTP']);
+    Route::post('/verify-password-reset-otp', [AuthController::class, 'verifyPasswordResetOTP']);
+    Route::post('/reset-password-with-otp', [AuthController::class, 'resetPasswordWithOTP']);
+    
+    // Resend OTP
+    Route::post('/resend-otp', [AuthController::class, 'resendOTP']);
 });
 
 // Protected routes
@@ -47,12 +59,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('products', ProductController::class);
     Route::patch('products/{product}/stock', [ProductController::class, 'updateStock']);
 
-    // Stock Management
+// Stock Management
     Route::prefix('stock')->group(function () {
         Route::get('/daily', [StockController::class, 'getDailyStock']);
         Route::put('/daily/{dailyStock}', [StockController::class, 'updateDailyStock']);
         Route::post('/add', [StockController::class, 'addStock']);
         Route::get('/additions', [StockController::class, 'getStockAdditions']);
+        Route::put('/additions/{addition}', [StockController::class, 'updateStockAddition']);
+        Route::patch('/additions/{addition}', [StockController::class, 'updateStockAddition']);
+        Route::get('/additions/{addition}/editable', [StockController::class, 'checkStockAdditionEditable']);
     });
 
     // Sales
@@ -60,7 +75,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [SalesController::class, 'index']);
         Route::post('/', [SalesController::class, 'store']);
         Route::get('/{sale}', [SalesController::class, 'show']);
+        Route::put('/{sale}', [SalesController::class, 'update']);
+        Route::patch('/{sale}', [SalesController::class, 'update']);
         Route::delete('/{sale}', [SalesController::class, 'destroy']);
+        Route::get('/{sale}/editable', [SalesController::class, 'checkEditable']);
     });
 
     // Receipts

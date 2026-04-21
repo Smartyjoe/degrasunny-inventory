@@ -156,6 +156,109 @@ class SalesService
     }
 
     /**
+     * Update a sale (recalculates pricing and stock)
+     */
+    public function updateSale(Sale $sale, array $data): Sale
+    {
+        return DB::transaction(function () use ($sale, $data) {
+            $oldProduct = $sale->product;
+            $oldQuantity = $sale->quantity;
+            $oldUnit = $sale->unit;
+            $oldDate = $sale->date;
+
+            // Calculate old stock impact
+            $oldBags = $this->pricingService->convertToBags($oldProduct, $oldUnit, $oldQuantity);
+
+            // If product changed, restore old product stock
+            if (isset($data['product_id']) && $data['product_id'] != $oldProduct->id) {
+                $oldProduct->increment('current_stock', $oldBags);
+                $this->ledgerService->recalculateDailyLedger($oldProduct, $oldDate);
+            }
+
+            // Get the product (old or new)
+            $product = isset($data['product_id']) 
+                ? Product::where('id', $data['product_id'])->where('user_id', auth()->id())->firstOrFail()
+                : $oldProduct;
+
+            $unit = $data['unit'] ?? $sale->unit;
+            $quantity = (float) ($data['quantity'] ?? $sale->quantity);
+            $date = isset($data['date']) ? Carbon::parse($data['date']) : $sale->date;
+
+            // Validate retail unit if applicable
+            $this->pricingService->validateRetailUnit($product, $unit);
+
+            // Calculate new pricing
+            $pricing = $this->pricingService->calculateProfit($product, $unit, $quantity);
+
+            // Calculate new stock impact
+            $newBags = $this->pricingService->convertToBags($product, $unit, $quantity);
+
+            // If same product, we need to reverse old impact first
+            if ($product->id == $oldProduct->id) {
+                // Restore old stock
+                $product->increment('current_stock', $oldBags);
+            }
+
+            // Validate stock availability for new quantity
+            $this->stockService->validateStockAvailability($product, $newBags);
+
+            // Deduct new stock
+            $this->stockService->deductStock($product, $newBags, $date);
+
+            // Update sale record
+            $sale->update([
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'unit' => $unit,
+                'unit_price' => $pricing['unit_price'],
+                'total_amount' => $pricing['total_amount'],
+                'cost_equivalent' => $pricing['cost_equivalent'],
+                'profit' => $pricing['profit'],
+                'payment_method' => $data['payment_method'] ?? $sale->payment_method,
+                'description' => $data['description'] ?? $sale->description,
+                'date' => $date,
+            ]);
+
+            // Reverse old profit summary
+            $this->reverseProfitSummary($oldDate, $oldQuantity * $oldProduct->costPrice, $oldQuantity * $oldProduct->sellingPrice, $sale->profit);
+
+            // Add new profit summary
+            $this->updateProfitSummary($date, $sale);
+
+            // Recalculate ledgers for affected dates
+            $this->ledgerService->recalculateDailyLedger($product, $date);
+            if ($oldDate->format('Y-m-d') != $date->format('Y-m-d')) {
+                $this->ledgerService->recalculateDailyLedger($oldProduct, $oldDate);
+            }
+
+            // Log update
+            AuditLog::log('updated', 'sale', $sale->id, $sale->getOriginal(), $sale->toArray());
+
+            return $sale->fresh('product');
+        });
+    }
+
+    /**
+     * Reverse profit summary (for updates)
+     */
+    protected function reverseProfitSummary(Carbon $date, float $cost, float $sales, float $profit): void
+    {
+        $userId = auth()->id();
+        $dateStr = $date->format('Y-m-d');
+
+        $summary = ProfitSummary::where('user_id', $userId)
+            ->where('date', $dateStr)
+            ->first();
+
+        if ($summary) {
+            $summary->decrement('total_sales', $sales);
+            $summary->decrement('total_cost', $cost);
+            $summary->decrement('total_profit', $profit);
+            $summary->decrement('sales_count');
+        }
+    }
+
+    /**
      * Get sales with filters
      */
     public function getSales(array $filters = []): array

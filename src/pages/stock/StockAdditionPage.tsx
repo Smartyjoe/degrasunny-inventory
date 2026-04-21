@@ -2,9 +2,9 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useState } from 'react'
 import { useProducts } from '@/hooks/useProducts'
-import { useAddStock, useStockAdditions } from '@/hooks/useStock'
+import { useAddStock, useStockAdditions, useUpdateStockAddition } from '@/hooks/useStock'
 import { stockAdditionSchema } from '@/utils/validation'
-import { Product } from '@/types'
+import { Product, StockAddition as StockAdditionType } from '@/types'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Select from '@/components/ui/Select'
@@ -12,8 +12,9 @@ import Input from '@/components/ui/Input'
 import Badge from '@/components/ui/Badge'
 import { Loading } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
-import { Plus, Package } from 'lucide-react'
+import { Plus, Package, Edit2, X } from 'lucide-react'
 import { formatCurrency, formatDate, getTodayDate } from '@/utils/format'
+import { stockService } from '@/services/stockService'
 
 type StockAdditionFormData = {
   productId: string
@@ -26,8 +27,12 @@ const StockAdditionPage = () => {
   const { data: products, isLoading: productsLoading } = useProducts({ isActive: true })
   const { data: recentAdditions } = useStockAdditions()
   const addStock = useAddStock()
+  const updateStock = useUpdateStockAddition()
   
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [editingAddition, setEditingAddition] = useState<StockAdditionType | null>(null)
+  const [editableAdditions, setEditableAdditions] = useState<Set<string>>(new Set())
+  const [loadingEditability, setLoadingEditability] = useState<Set<string>>(new Set())
 
   const {
     register,
@@ -63,21 +68,80 @@ const StockAdditionPage = () => {
   const onSubmit = async (data: StockAdditionFormData) => {
     try {
       const product = products?.find(p => p.id === data.productId)
-      await addStock.mutateAsync({
-        productId: data.productId,
-        productName: product?.name || 'Unknown Product',
-        quantity: data.quantity,
-        costPrice: data.costPrice,
-        date: getTodayDate(),
-        notes: data.notes,
-        createdAt: new Date().toISOString(),
-      })
-      reset()
-      setSelectedProduct(null)
+      
+      if (editingAddition) {
+        // Update existing stock addition
+        await updateStock.mutateAsync({
+          id: editingAddition.id,
+          data: {
+            productId: data.productId,
+            quantity: data.quantity,
+            costPrice: data.costPrice,
+            notes: data.notes,
+          }
+        })
+        setEditingAddition(null)
+        reset()
+        setSelectedProduct(null)
+      } else {
+        // Create new stock addition
+        await addStock.mutateAsync({
+          productId: data.productId,
+          productName: product?.name || 'Unknown Product',
+          quantity: data.quantity,
+          costPrice: data.costPrice,
+          date: getTodayDate(),
+          notes: data.notes,
+          createdAt: new Date().toISOString(),
+        })
+        reset()
+        setSelectedProduct(null)
+      }
     } catch (error) {
       // Error handled by mutation
     }
   }
+
+  const handleEditAddition = (addition: StockAdditionType) => {
+    setEditingAddition(addition)
+    const product = products?.find(p => p.id === addition.productId)
+    setSelectedProduct(product || null)
+    reset({
+      productId: addition.productId,
+      quantity: addition.quantity,
+      costPrice: addition.costPrice,
+      notes: addition.notes,
+    })
+  }
+
+  const handleCancelEdit = () => {
+    setEditingAddition(null)
+    reset()
+    setSelectedProduct(null)
+  }
+
+  // Check editability for recent additions
+  useState(() => {
+    if (!recentAdditions) return
+    recentAdditions.slice(0, 10).forEach(async (addition) => {
+      if (loadingEditability.has(addition.id)) return
+      setLoadingEditability(prev => new Set(prev).add(addition.id))
+      try {
+        const result = await stockService.checkStockAdditionEditable(addition.id)
+        if (result.editable) {
+          setEditableAdditions(prev => new Set(prev).add(addition.id))
+        }
+      } catch (e) {
+        // Not editable
+      } finally {
+        setLoadingEditability(prev => {
+          const next = new Set(prev)
+          next.delete(addition.id)
+          return next
+        })
+      }
+    })
+  })
 
   if (productsLoading) {
     return <Loading message="Loading products..." />
@@ -220,12 +284,33 @@ const StockAdditionPage = () => {
                       type="submit"
                       fullWidth
                       size="lg"
-                      isLoading={addStock.isPending}
+                      isLoading={addStock.isPending || updateStock.isPending}
                       disabled={!selectedProduct || quantity < 1 || costPrice <= 0}
                     >
-                      <Plus className="w-5 h-5 mr-2" />
-                      Add Stock
+                      {editingAddition ? (
+                        <>
+                          <Edit2 className="w-5 h-5 mr-2" />
+                          Update Stock
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-5 h-5 mr-2" />
+                          Add Stock
+                        </>
+                      )}
                     </Button>
+                    {editingAddition && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        fullWidth
+                        onClick={handleCancelEdit}
+                        className="mt-2"
+                      >
+                        <X className="w-4 h-4 mr-2" />
+                        Cancel Edit
+                      </Button>
+                    )}
                   </>
                 )}
               </form>
@@ -259,9 +344,20 @@ const StockAdditionPage = () => {
                         </div>
                         <div className="flex justify-between items-center text-xs text-gray-600">
                           <span>{formatDate(addition.date)}</span>
-                          <span className="font-semibold text-gray-900">
-                            {formatCurrency(addition.totalCost || 0)}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {editableAdditions.has(addition.id) && (
+                              <button
+                                onClick={() => handleEditAddition(addition)}
+                                className="text-amber-600 hover:text-amber-700"
+                                title="Edit Stock Addition"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                            )}
+                            <span className="font-semibold text-gray-900">
+                              {formatCurrency(addition.totalCost || 0)}
+                            </span>
+                          </div>
                         </div>
                         {addition.notes && (
                           <p className="text-xs text-gray-500 mt-1 line-clamp-1">

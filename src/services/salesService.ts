@@ -138,5 +138,25 @@ export const salesService = {
     
     await api.delete(`/sales/${id}`)
   },
+
+  // Update sale
+  updateSale: async (id: string, data: Partial<SaleFormData>): Promise<Sale> => {
+    if (USE_MOCK_DATA) {
+      throw new Error('Update not supported in mock mode')
+    }
+    
+    const response = await api.put<ApiResponse<Sale>>(`/sales/${id}`, data)
+    return response.data.data
+  },
+
+  // Check if sale is editable
+  checkSaleEditable: async (id: string): Promise<{editable: boolean, minutes_remaining: number, expires_at: string}> => {
+    if (USE_MOCK_DATA) {
+      return { editable: true, minutes_remaining: 90, expires_at: '' }
+    }
+    
+    const response = await api.get<ApiResponse<{editable: boolean, minutes_remaining: number, expires_at: string}>>(`/sales/${id}/editable`)
+    return response.data.data
+  },
 }
 
