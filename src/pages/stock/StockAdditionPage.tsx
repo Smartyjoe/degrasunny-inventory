@@ -330,6 +330,16 @@ const StockAdditionPage = () => {
                             +{addition.quantity}
                           </Badge>
                         </div>
+                        {addition.stockBefore !== undefined && addition.stockAfter !== undefined && (
+                          <div className="text-xs text-gray-600 mb-2">
+                            <span className="text-gray-500">Stock:</span>{' '}
+                            <span className="font-medium">{addition.stockBefore}</span>
+                            <span className="mx-1">→</span>
+                            <span className="text-green-600 font-medium">+{addition.quantity}</span>
+                            <span className="mx-1">→</span>
+                            <span className="font-medium">{addition.stockAfter}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between items-center text-xs text-gray-600">
                           <span>{formatDate(addition.date)}</span>
                           <div className="flex items-center gap-2">
