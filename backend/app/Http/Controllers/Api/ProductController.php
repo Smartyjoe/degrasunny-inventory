@@ -49,8 +49,8 @@ class ProductController extends Controller
      */
     public function show(Request $request, Product $product): JsonResponse
     {
-        // Verify ownership (redundant with global scope but added for security)
-        if ($product->user_id !== $request->user()->id) {
+        // FIXED: Use strval to compare both sides - handles string/int type mismatch
+        if (strval($product->user_id) !== strval($request->user()->id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Product not found or access denied',
@@ -69,7 +69,12 @@ class ProductController extends Controller
      */
     public function store(ProductRequest $request): JsonResponse
     {
-        $product = Product::create($request->validated());
+        $payload = $request->validated();
+        if (!isset($payload['current_stock'])) {
+            $payload['current_stock'] = 0;
+        }
+
+        $product = Product::create($payload);
 
         AuditLog::log('created', 'product', $product->id, null, $product->toArray());
 
@@ -85,8 +90,8 @@ class ProductController extends Controller
      */
     public function update(ProductRequest $request, Product $product): JsonResponse
     {
-        // Verify ownership
-        if ($product->user_id !== $request->user()->id) {
+        // FIXED: Use strval to compare both sides
+        if (strval($product->user_id) !== strval($request->user()->id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Product not found or access denied',
@@ -111,8 +116,8 @@ class ProductController extends Controller
      */
     public function destroy(Request $request, Product $product): JsonResponse
     {
-        // Verify ownership
-        if ($product->user_id !== $request->user()->id) {
+        // FIXED: Use strval to compare both sides
+        if (strval($product->user_id) !== strval($request->user()->id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Product not found or access denied',
@@ -144,8 +149,8 @@ class ProductController extends Controller
      */
     public function updateStock(Request $request, Product $product): JsonResponse
     {
-        // Verify ownership
-        if ($product->user_id !== $request->user()->id) {
+        // FIXED: Use strval to compare both sides
+        if (strval($product->user_id) !== strval($request->user()->id)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Product not found or access denied',
@@ -180,7 +185,7 @@ class ProductController extends Controller
             'id' => (string) $product->id,
             'name' => $product->name,
             'description' => $product->description,
-            'category' => $product->category, // Issue 2 Fix: Include category in response
+            'category' => $product->category,
             'currentStock' => (float) $product->current_stock,
             'costPrice' => (float) $product->cost_price,
             'sellingPrice' => (float) $product->selling_price,

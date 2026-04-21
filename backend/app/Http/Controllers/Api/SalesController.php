@@ -8,6 +8,7 @@ use App\Models\Sale;
 use App\Services\SalesService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class SalesController extends Controller
 {
@@ -20,27 +21,39 @@ class SalesController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $filters = [];
+        try {
+            $filters = [];
 
-        if ($request->has('productId')) {
-            $filters['product_id'] = $request->productId;
+            if ($request->has('productId')) {
+                $filters['product_id'] = $request->productId;
+            }
+
+            if ($request->has('startDate')) {
+                $filters['start_date'] = $request->startDate;
+            }
+
+            if ($request->has('endDate')) {
+                $filters['end_date'] = $request->endDate;
+            }
+
+            $sales = $this->salesService->getSales($filters);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Sales retrieved successfully',
+                'data' => $sales,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('SalesController@index error: ' . $e->getMessage(), [
+                'user_id' => $request->user()->id ?? 'guest',
+                'filters' => $filters ?? [],
+                'trace' => $e->getTraceAsString()
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load sales data',
+            ], 500);
         }
-
-        if ($request->has('startDate')) {
-            $filters['start_date'] = $request->startDate;
-        }
-
-        if ($request->has('endDate')) {
-            $filters['end_date'] = $request->endDate;
-        }
-
-        $sales = $this->salesService->getSales($filters);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Sales retrieved successfully',
-            'data' => $sales,
-        ]);
     }
 
     /**
@@ -48,8 +61,8 @@ class SalesController extends Controller
      */
     public function show(Request $request, Sale $sale): JsonResponse
     {
-        // Verify ownership
-        if ($sale->user_id !== $request->user()->id) {
+        // Verify ownership - cast both to string to avoid type mismatch
+        if ((string) $sale->user_id !== (string) $request->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Sale not found or access denied',
@@ -114,8 +127,8 @@ class SalesController extends Controller
      */
     public function destroy(Request $request, Sale $sale): JsonResponse
     {
-        // Verify ownership
-        if ($sale->user_id !== $request->user()->id) {
+        // Verify ownership - cast both to string to avoid type mismatch
+        if ((string) $sale->user_id !== (string) $request->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Sale not found or access denied',

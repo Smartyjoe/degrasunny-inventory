@@ -14,8 +14,8 @@ class ReceiptController extends Controller
      */
     public function show(Request $request, Sale $sale): JsonResponse
     {
-        // Verify ownership
-        if ($sale->user_id !== $request->user()->id) {
+        // Verify ownership - cast both to string to avoid type mismatch
+        if ((string) $sale->user_id !== (string) $request->user()->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'Receipt not found or access denied',
@@ -57,8 +57,8 @@ class ReceiptController extends Controller
      */
     public function generateHtml(Request $request, Sale $sale): string
     {
-        // Verify ownership
-        if ($sale->user_id !== $request->user()->id) {
+        // Verify ownership - cast both to string to avoid type mismatch
+        if ((string) $sale->user_id !== (string) $request->user()->id) {
             abort(404, 'Receipt not found');
         }
 
