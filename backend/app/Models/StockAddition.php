@@ -59,12 +59,12 @@ class StockAddition extends Model
             }
         });
 
-        // Automatically set user_id and calculate total_cost on create
-        static::creating(function ($addition) {
+        // Automatically set user_id and calculate total_cost on saving
+        static::saving(function ($addition) {
             if (auth()->check() && !$addition->user_id) {
                 $addition->user_id = auth()->id();
             }
-            $addition->total_cost = $addition->quantity * $addition->cost_price;
+            $addition->total_cost = (float) $addition->quantity * (float) $addition->cost_price;
         });
     }
 }

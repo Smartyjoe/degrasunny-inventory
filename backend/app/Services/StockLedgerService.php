@@ -23,6 +23,10 @@ use Illuminate\Support\Facades\DB;
  */
 class StockLedgerService
 {
+    public function __construct(
+        protected PricingService $pricingService
+    ) {}
+
     /**
      * Get or create daily stock ledger (ATOMIC OPERATION)
      * 
@@ -81,6 +85,38 @@ class StockLedgerService
     }
 
     /**
+     * Recalculate daily ledger values from transactions
+     */
+    public function recalculateDailyLedger(Product $product, Carbon $date): StockLedger
+    {
+        return DB::transaction(function () use ($product, $date) {
+            $ledger = $this->getOrCreateDailyLedger($product, $date);
+
+            $dateString = $date->toDateString();
+
+            $stockAdded = $product->stockAdditions()
+                ->whereDate('date', $dateString)
+                ->sum('quantity');
+
+            $sales = $product->sales()
+                ->whereDate('date', $dateString)
+                ->get();
+
+            $stockSold = $sales->sum(function ($sale) use ($product) {
+                return $this->pricingService->convertToBags($product, $sale->unit, $sale->quantity);
+            });
+
+            $ledger->stock_added = (float) $stockAdded;
+            $ledger->stock_sold = (float) $stockSold;
+            $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
+
+            $ledger->save();
+
+            return $ledger;
+        });
+    }
+
+    /**
      * Record stock sold (called by sales)
      * 
      * @param Product $product
@@ -128,6 +164,31 @@ class StockLedgerService
             $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
             
             // Save
+            $ledger->save();
+
+            return $ledger;
+        });
+    }
+
+    /**
+     * Record stock deducted (for reversals)
+     * 
+     * @param Product $product
+     * @param float $quantity
+     * @param Carbon $date
+     * @return StockLedger
+     */
+    public function recordStockDeducted(Product $product, float $quantity, Carbon $date): StockLedger
+    {
+        return DB::transaction(function () use ($product, $quantity, $date) {
+            $ledger = $this->getOrCreateDailyLedger($product, $date);
+
+            // Deduct stock added (for stock addition reversals)
+            $ledger->stock_added = max(0, $ledger->stock_added - $quantity);
+            
+            // Recalculate closing stock
+            $ledger->closing_stock = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
+            
             $ledger->save();
 
             return $ledger;
@@ -190,8 +251,8 @@ class StockLedgerService
             ->whereDate('date', $dateString)
             ->get();
 
-        $stockSold = (float) $sales->sum(function ($sale) {
-            return (float) ($sale->quantity_in_bags ?? $sale->quantity);
+        $stockSold = (float) $sales->sum(function ($sale) use ($product) {
+            return $this->pricingService->convertToBags($product, $sale->unit, $sale->quantity);
         });
 
         $closingStock = $openingStock + $stockAdded - $stockSold;

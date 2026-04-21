@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useProducts } from '@/hooks/useProducts'
 import { useAddStock, useStockAdditions, useUpdateStockAddition } from '@/hooks/useStock'
 import { stockAdditionSchema } from '@/utils/validation'
@@ -77,6 +77,7 @@ const StockAdditionPage = () => {
             productId: data.productId,
             quantity: data.quantity,
             costPrice: data.costPrice,
+            date: editingAddition.date, // Preserve original date
             notes: data.notes,
           }
         })
@@ -121,10 +122,10 @@ const StockAdditionPage = () => {
   }
 
   // Check editability for recent additions
-  useState(() => {
+  useEffect(() => {
     if (!recentAdditions) return
     recentAdditions.slice(0, 10).forEach(async (addition) => {
-      if (loadingEditability.has(addition.id)) return
+      if (loadingEditability.has(addition.id) || editableAdditions.has(addition.id)) return
       setLoadingEditability(prev => new Set(prev).add(addition.id))
       try {
         const result = await stockService.checkStockAdditionEditable(addition.id)
@@ -141,7 +142,7 @@ const StockAdditionPage = () => {
         })
       }
     })
-  })
+  }, [recentAdditions])
 
   if (productsLoading) {
     return <Loading message="Loading products..." />

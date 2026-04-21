@@ -78,8 +78,8 @@ api.interceptors.response.use(
     } else if (status === 404) {
       toast.error('Resource not found.')
     } else if (status === 422) {
-      // Validation errors - show but don't duplicate toast
-      // The component will handle displaying field errors
+      // Validation errors - show toast to prevent silent failures
+      toast.error(message)
       console.warn('Validation error:', message)
     } else if (status === 429) {
       toast.error('Too many requests. Please wait a moment.')

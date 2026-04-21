@@ -1,6 +1,6 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useProducts } from '@/hooks/useProducts'
 import { useCreateSale, useTodaySales, useUpdateSale } from '@/hooks/useSales'
 import { useAIContext } from '@/hooks/useAIContext'
@@ -49,10 +49,10 @@ const SalesEntryPage = () => {
   })
 
   // Check editability for recent sales
-  useState(() => {
+  useEffect(() => {
     if (!todaySales) return
     todaySales.slice(0, 5).forEach(async (sale) => {
-      if (loadingEditability.has(sale.id)) return
+      if (loadingEditability.has(sale.id) || editableSales.has(sale.id)) return
       setLoadingEditability(prev => new Set(prev).add(sale.id))
       try {
         const result = await salesService.checkSaleEditable(sale.id)
@@ -69,7 +69,7 @@ const SalesEntryPage = () => {
         })
       }
     })
-  })
+  }, [todaySales])
 
   // const productId = watch('productId')
   const unit = watch('unit') as SaleUnit
