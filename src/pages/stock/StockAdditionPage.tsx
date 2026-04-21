@@ -121,27 +121,16 @@ const StockAdditionPage = () => {
     setSelectedProduct(null)
   }
 
-  // Check editability for recent additions
+  // Update editable additions from the loaded data
   useEffect(() => {
     if (!recentAdditions) return
-    recentAdditions.slice(0, 10).forEach(async (addition) => {
-      if (loadingEditability.has(addition.id) || editableAdditions.has(addition.id)) return
-      setLoadingEditability(prev => new Set(prev).add(addition.id))
-      try {
-        const result = await stockService.checkStockAdditionEditable(addition.id)
-        if (result.editable) {
-          setEditableAdditions(prev => new Set(prev).add(addition.id))
-        }
-      } catch (e) {
-        // Not editable
-      } finally {
-        setLoadingEditability(prev => {
-          const next = new Set(prev)
-          next.delete(addition.id)
-          return next
-        })
+    const editable = new Set<string>()
+    recentAdditions.forEach(addition => {
+      if (addition.editable) {
+        editable.add(addition.id)
       }
     })
+    setEditableAdditions(editable)
   }, [recentAdditions])
 
   if (productsLoading) {

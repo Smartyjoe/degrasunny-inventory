@@ -48,27 +48,16 @@ const SalesEntryPage = () => {
     },
   })
 
-  // Check editability for recent sales
+  // Update editable sales from the loaded data
   useEffect(() => {
     if (!todaySales) return
-    todaySales.slice(0, 5).forEach(async (sale) => {
-      if (loadingEditability.has(sale.id) || editableSales.has(sale.id)) return
-      setLoadingEditability(prev => new Set(prev).add(sale.id))
-      try {
-        const result = await salesService.checkSaleEditable(sale.id)
-        if (result.editable) {
-          setEditableSales(prev => new Set(prev).add(sale.id))
-        }
-      } catch (e) {
-        // Not editable
-      } finally {
-        setLoadingEditability(prev => {
-          const next = new Set(prev)
-          next.delete(sale.id)
-          return next
-        })
+    const editable = new Set<string>()
+    todaySales.forEach(sale => {
+      if (sale.editable) {
+        editable.add(sale.id)
       }
     })
+    setEditableSales(editable)
   }, [todaySales])
 
   // const productId = watch('productId')

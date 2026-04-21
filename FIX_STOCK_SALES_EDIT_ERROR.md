@@ -69,10 +69,23 @@ I found that updating stock was failing "silently" because:
 - Modified `api.ts` to show a toast for 422 errors if they occur.
 - Updated `StockAddition.php` model to recalculate `total_cost` whenever the record is saved.
 - Fixed a bug in `StockAdditionPage.tsx` and `SalesEntryPage.tsx` where the "Edit" button logic only ran once on load (instead of when data arrived).
+### 5. CORS Errors and Request Overload
+You noticed CORS errors appearing for the `/editable` route. This was happening because:
+- **Inefficient Design:** The app was firing up to 10-15 separate API requests every time you opened the Sales or Stock page (one for each item to check if it's still editable).
+- **Server Throttling:** Your LiteSpeed server likely saw these simultaneous requests as a security risk or hit a rate limit, causing it to block some of them. When LiteSpeed blocks a request internally, it often misses the CORS headers, leading to the error you saw.
+
+**Fixes Applied:**
+- **Optimization:** I updated both the Sales and Stock backend controllers to include the `editable` status directly in the list response.
+- **Removed Loops:** I updated the frontend to use this embedded status and removed the loops that were firing all those extra API calls. 
+- **Result:** The page now loads significantly faster, uses much less data, and completely avoids the CORS/Rate-limit issue.
 
 ---
 
 ## Final Deployment Steps
-1. **Frontend:** Rebuild and deploy your frontend to ensure the `date` is sent and `useEffect` hooks work correctly.
-2. **Backend:** Ensure you have updated `app/Models/StockAddition.php` and `app/Services/StockLedgerService.php`.
+1. **Frontend:** Rebuild and deploy your frontend. The new code is much more efficient.
+2. **Backend:** Ensure you have updated:
+   - `app/Http/Controllers/Api/StockController.php`
+   - `app/Services/SalesService.php`
+   - `app/Models/StockAddition.php`
+   - `app/Services/StockLedgerService.php`
 3. **Cache:** Run `php artisan optimize:clear` on the server.

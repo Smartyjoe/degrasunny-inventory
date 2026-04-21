@@ -291,6 +291,7 @@ class SalesService
                 'description' => $sale->description,
                 'date' => $sale->date->format('Y-m-d'),
                 'createdAt' => $sale->created_at->toIso8601String(),
+                'editable' => now()->diffInMinutes($sale->created_at) < 90,
             ];
         })->toArray();
     }

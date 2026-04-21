@@ -119,6 +119,7 @@ class StockController extends Controller
                     'date' => $addition->date->format('Y-m-d'),
                     'notes' => $addition->notes,
                     'createdAt' => $addition->created_at->toIso8601String(),
+                    'editable' => now()->diffInMinutes($addition->created_at) < 120,
                 ];
             })->values(),
         ]);
