@@ -13,6 +13,8 @@ class StockAddition extends Model
         'user_id',
         'product_id',
         'quantity',
+        'stock_before',
+        'stock_after',
         'cost_price',
         'total_cost',
         'supplier',

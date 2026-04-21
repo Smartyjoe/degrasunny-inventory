@@ -7,7 +7,8 @@ import {
   Box,
   PlusCircle,
   Settings,
-  X
+  X,
+  BarChart3
 } from 'lucide-react'
 import { cn } from '@/utils/cn'
 import { useAuthStore } from '@/store/authStore'
@@ -23,6 +24,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Products', href: '/products', icon: Package },
   { name: 'Sales Entry', href: '/sales', icon: ShoppingCart },
+  { name: 'Sales Report', href: '/sales/report', icon: BarChart3 },
   { name: 'Daily Stock', href: '/daily-stock', icon: Box },
   { name: 'Add Stock', href: '/stock-addition', icon: PlusCircle },
   { name: 'Reports', href: '/reports', icon: FileText },

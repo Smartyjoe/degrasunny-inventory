@@ -102,11 +102,13 @@ export interface StockAddition {
   productId: string
   productName: string
   quantity: number
+  stockBefore?: number
+  stockAfter?: number
   costPrice: number
-  totalCost: number
+  totalCost?: number
   date: string
   notes?: string
-  createdAt: string
+  createdAt?: string
 }
 
 // Dashboard Types

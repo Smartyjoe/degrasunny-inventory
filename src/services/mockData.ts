@@ -182,6 +182,8 @@ export const mockStockAdditions: StockAddition[] = [
     productId: '3',
     productName: 'Garri (50kg bag)',
     quantity: 5,
+    stockBefore: 10,
+    stockAfter: 15,
     costPrice: 15000,
     totalCost: 75000,
     date: new Date().toISOString().split('T')[0],

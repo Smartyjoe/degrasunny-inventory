@@ -78,11 +78,17 @@ class StockService
             $product = Product::findOrFail($data['product_id']);
             $date = Carbon::parse($data['date']);
 
-            // Create stock addition record
+            // Capture stock before and after for history tracking
+            $stockBefore = (float) $product->current_stock;
+            $stockAfter = $stockBefore + $data['quantity'];
+
+            // Create stock addition record with stock tracking
             $addition = StockAddition::create([
                 'user_id' => auth()->id(),
                 'product_id' => $product->id,
                 'quantity' => $data['quantity'],
+                'stock_before' => $stockBefore,
+                'stock_after' => $stockAfter,
                 'cost_price' => $data['cost_price'],
                 'supplier' => $data['supplier'] ?? null,
                 'date' => $date,

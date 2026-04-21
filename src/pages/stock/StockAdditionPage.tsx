@@ -260,7 +260,7 @@ const StockAdditionPage = () => {
                         <div className="flex justify-between items-center text-xs text-gray-600">
                           <span>{formatDate(addition.date)}</span>
                           <span className="font-semibold text-gray-900">
-                            {formatCurrency(addition.totalCost)}
+                            {formatCurrency(addition.totalCost || 0)}
                           </span>
                         </div>
                         {addition.notes && (
