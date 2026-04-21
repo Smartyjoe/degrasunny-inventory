@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Models\StockLedger;
 use App\Models\Product;
+use App\Models\Sale;
+use App\Models\StockAddition;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -183,7 +185,7 @@ class StockLedgerService
             ->sum('quantity');
 
         // Calculate stock sold from sales records
-        $sales = \App\Models\Sale::where('user_id', $product->user_id)
+        $sales = Sale::where('user_id', $product->user_id)
             ->where('product_id', $product->id)
             ->whereDate('date', $dateString)
             ->get();

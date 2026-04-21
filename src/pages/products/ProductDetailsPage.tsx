@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useProduct } from '@/hooks/useProducts'
 import { useSales } from '@/hooks/useSales'
-import { ArrowLeft, Edit, ShoppingCart } from 'lucide-react'
+import { ArrowLeft, Edit, ShoppingCart, AlertCircle } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card'
 import Button from '@/components/ui/Button'
 import Badge from '@/components/ui/Badge'
@@ -15,11 +15,23 @@ const ProductDetailsPage = () => {
   const navigate = useNavigate()
   const [showEditModal, setShowEditModal] = useState(false)
 
-  const { data: product, isLoading: productLoading } = useProduct(id!)
-  const { data: sales } = useSales({ productId: id })
+  const { data: product, isLoading: productLoading, error: productError } = useProduct(id!)
+  const { data: sales, error: salesError, isLoading: salesLoading } = useSales({ productId: id })
 
-  if (productLoading) {
+  if (productLoading || salesLoading) {
     return <Loading message="Loading product..." />
+  }
+
+  if (productError) {
+    return (
+      <div className="text-center py-12">
+        <AlertCircle className="w-12 h-12 text-danger-500 mx-auto mb-3" />
+        <p className="text-gray-600">Failed to load product. Please try again.</p>
+        <Button onClick={() => navigate('/products')} className="mt-4">
+          Back to Products
+        </Button>
+      </div>
+    )
   }
 
   if (!product) {
@@ -45,10 +57,11 @@ const ProductDetailsPage = () => {
     ? calculateProfit(product.bucketPrice || 0, product.costPrice / product.bucketsPerBag)
     : 0
 
-  // Calculate sales stats
-  const totalSales = sales?.reduce((sum, s) => sum + s.totalAmount, 0) || 0
-  const totalProfit = sales?.reduce((sum, s) => sum + s.profit, 0) || 0
-  const totalQuantitySold = sales?.reduce((sum, s) => sum + s.quantity, 0) || 0
+  // Calculate sales stats - handle undefined/null gracefully
+  const salesData = sales || []
+  const totalSales = salesData.reduce((sum, s) => sum + s.totalAmount, 0)
+  const totalProfit = salesData.reduce((sum, s) => sum + s.profit, 0)
+  const totalQuantitySold = salesData.reduce((sum, s) => sum + s.quantity, 0)
 
   return (
     <div className="space-y-6">
@@ -105,7 +118,7 @@ const ProductDetailsPage = () => {
             <p className="text-2xl font-bold text-success-700">
               {formatCurrency(totalSales)}
             </p>
-            <p className="text-xs text-gray-500 mt-1">{sales?.length || 0} transactions</p>
+            <p className="text-xs text-gray-500 mt-1">{salesData.length} transactions</p>
           </div>
         </Card>
 
@@ -235,9 +248,14 @@ const ProductDetailsPage = () => {
             <CardTitle>Recent Sales</CardTitle>
           </CardHeader>
           <CardContent>
-            {sales && sales.length > 0 ? (
+            {salesError ? (
+              <div className="text-center py-4">
+                <AlertCircle className="w-8 h-8 text-warning-500 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">Could not load sales data</p>
+              </div>
+            ) : salesData.length > 0 ? (
               <div className="space-y-3">
-                {sales.slice(0, 10).map((sale) => (
+                {salesData.slice(0, 10).map((sale) => (
                   <div
                     key={sale.id}
                     className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
