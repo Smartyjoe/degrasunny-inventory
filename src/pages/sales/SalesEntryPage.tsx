@@ -17,7 +17,6 @@ import { ReceiptModal } from '@/components/receipt/ReceiptModal'
 import { ShoppingCart, Receipt, Edit2, X } from 'lucide-react'
 import { formatCurrency, formatTime, calculateProfit } from '@/utils/format'
 import AIChatWidget from '@/components/ai/AIChatWidget'
-import { salesService } from '@/services/salesService'
 
 const SalesEntryPage = () => {
   const { data: products, isLoading: productsLoading } = useProducts({ isActive: true })
@@ -31,7 +30,6 @@ const SalesEntryPage = () => {
   const [showReceipt, setShowReceipt] = useState(false)
   const [editingSale, setEditingSale] = useState<Sale | null>(null)
   const [editableSales, setEditableSales] = useState<Set<string>>(new Set())
-  const [loadingEditability, setLoadingEditability] = useState<Set<string>>(new Set())
 
   const {
     register,

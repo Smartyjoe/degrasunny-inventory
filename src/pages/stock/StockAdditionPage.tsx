@@ -14,7 +14,6 @@ import { Loading } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { Plus, Package, Edit2, X } from 'lucide-react'
 import { formatCurrency, formatDate, getTodayDate } from '@/utils/format'
-import { stockService } from '@/services/stockService'
 
 type StockAdditionFormData = {
   productId: string
@@ -32,7 +31,6 @@ const StockAdditionPage = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [editingAddition, setEditingAddition] = useState<StockAdditionType | null>(null)
   const [editableAdditions, setEditableAdditions] = useState<Set<string>>(new Set())
-  const [loadingEditability, setLoadingEditability] = useState<Set<string>>(new Set())
 
   const {
     register,
