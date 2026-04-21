@@ -82,6 +82,7 @@ class SalesController extends Controller
                 'totalAmount' => (float) $sale->total_amount,
                 'profit' => (float) $sale->profit,
                 'paymentMethod' => $sale->payment_method,
+                'description' => $sale->description,
                 'date' => $sale->date->format('Y-m-d'),
                 'createdAt' => $sale->created_at->toIso8601String(),
             ],

@@ -59,6 +59,7 @@ class SalesService
                 'cost_equivalent' => $pricing['cost_equivalent'],
                 'profit' => $pricing['profit'],
                 'payment_method' => $data['payment_method'] ?? 'cash',
+                'description' => $data['description'] ?? null,
                 'date' => $date,
                 'user_id' => auth()->id(),
             ]);
@@ -184,6 +185,7 @@ class SalesService
                 'totalAmount' => (float) $sale->total_amount,
                 'profit' => (float) $sale->profit,
                 'paymentMethod' => $sale->payment_method,
+                'description' => $sale->description,
                 'date' => $sale->date->format('Y-m-d'),
                 'createdAt' => $sale->created_at->toIso8601String(),
             ];

@@ -42,6 +42,7 @@ class ReceiptController extends Controller
                 'pricePerUnit' => (float) $sale->unit_price,
                 'totalAmount' => (float) $sale->total_amount,
                 'paymentMethod' => $this->formatPaymentMethod($sale->payment_method),
+                'description' => $sale->description,
             ],
         ];
 
@@ -70,6 +71,14 @@ class ReceiptController extends Controller
         $receiptId = 'RCP-' . str_pad($sale->id, 6, '0', STR_PAD_LEFT);
         $productName = $sale->product ? $sale->product->name : 'Unknown Product';
         $paymentMethod = $this->formatPaymentMethod($sale->payment_method);
+        $description = $sale->description;
+        $descriptionHtml = $description ? <<<HTML
+            <div class="item-details" style="margin-top: 10px; font-style: italic;">
+                <span>Note:</span>
+                <span>{$description}</span>
+            </div>
+HTML
+            : '';
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -228,6 +237,7 @@ HTML;
                     <span>Price per {$sale->unit}:</span>
                     <span>KES {$sale->unit_price}</span>
                 </div>
+                {$descriptionHtml}
             </div>
         </div>
         

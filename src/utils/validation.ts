@@ -61,6 +61,7 @@ export const saleSchema = z.object({
   paymentMethod: z.enum(['cash', 'pos', 'bank_transfer'], {
     errorMap: () => ({ message: 'Please select a payment method' }),        
   }),
+  description: z.string().max(500, 'Description must be less than 500 characters').optional(),
 })
 
 export const stockAdditionSchema = z.object({

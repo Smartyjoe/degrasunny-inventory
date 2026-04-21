@@ -327,6 +327,9 @@ const SalesReportPage = () => {
                       <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
                         Profit
                       </th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Notes
+                      </th>
                       <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">
                         Payment
                       </th>
@@ -357,6 +360,9 @@ const SalesReportPage = () => {
                           <span className={sale.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
                             {formatCurrency(sale.profit)}
                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-sm text-gray-600 max-w-[150px] truncate" title={sale.description || ''}>
+                          {sale.description || '-'}
                         </td>
                         <td className="px-4 py-3 text-center">
                           <Badge 

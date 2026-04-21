@@ -229,6 +229,22 @@ const SalesEntryPage = () => {
                       error={errors.paymentMethod?.message}
                       {...register('paymentMethod')}
                     />
+
+                    {/* Description */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Notes (Optional)
+                      </label>
+                      <textarea
+                        className="w-full px-4 py-3 text-base border border-gray-300 rounded-lg transition-colors focus-ring focus:border-primary-500 focus:ring-primary-500"
+                        rows={2}
+                        placeholder="Add any notes about this sale..."
+                        {...register('description')}
+                      />
+                      {errors.description && (
+                        <p className="mt-1.5 text-sm text-danger-600">{errors.description.message}</p>
+                      )}
+                    </div>
                     </div>
 
                     {/* Price Summary */}

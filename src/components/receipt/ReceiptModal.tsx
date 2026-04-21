@@ -110,6 +110,11 @@ export function ReceiptModal({ isOpen, onClose, saleId }: ReceiptModalProps) {
                 <p className="font-semibold text-gray-900 mb-1">
                   Payment Method: {receipt.sale.paymentMethod}
                 </p>
+                {receipt.sale.description && (
+                  <p className="text-sm text-gray-600 mt-2 italic">
+                    Note: {receipt.sale.description}
+                  </p>
+                )}
               </div>
 
               {/* Footer */}

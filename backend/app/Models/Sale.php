@@ -20,6 +20,7 @@ class Sale extends Model
         'profit',
         'date',
         'payment_method',
+        'description',
     ];
 
     protected $casts = [
