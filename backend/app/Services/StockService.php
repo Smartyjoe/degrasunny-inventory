@@ -170,24 +170,76 @@ class StockService
 
     /**
      * Get daily stock for date
+     * 
+     * This method now correctly handles:
+     * - Existing ledger records for the date
+     * - Products with no ledger (calculates from transactions)
+     * - Products with no transactions on that date
      */
-    public function getDailyStock(Carbon $date): array
+    public function getDailyStock(Carbon $date, Product $product = null): array
     {
-        return StockLedger::with('product')
-            ->where('date', $date)
-            ->get()
-            ->map(function ($ledger) {
+        $dateString = $date->toDateString();
+        $userId = auth()->id();
+
+        // If single product requested
+        if ($product) {
+            $ledger = StockLedger::where('user_id', $userId)
+                ->where('product_id', $product->id)
+                ->where('date', $dateString)
+                ->first();
+
+            if ($ledger) {
                 return [
                     'id' => (string) $ledger->id,
                     'productId' => (string) $ledger->product_id,
-                    'productName' => $ledger->product ? $ledger->product->name : 'Unknown Product',
-                    'date' => $ledger->date->format('Y-m-d'),
+                    'productName' => $product->name,
+                    'date' => $dateString,
                     'openingStock' => (float) $ledger->opening_stock,
                     'stockAdded' => (float) $ledger->stock_added,
                     'stockSold' => (float) $ledger->stock_sold,
                     'closingStock' => (float) $ledger->closing_stock,
                 ];
-            })
-            ->toArray();
+            }
+
+            // No ledger - calculate from transactions
+            return [
+                'productId' => (string) $product->id,
+                'productName' => $product->name,
+                'date' => $dateString,
+            ] + $this->ledgerService->calculateDailyStock($product, $date);
+        }
+
+        // Get all products for user
+        $products = Product::where('user_id', $userId)
+            ->where('is_active', true)
+            ->get();
+
+        return $products->map(function ($product) use ($date, $dateString) {
+            $ledger = StockLedger::where('user_id', $product->user_id)
+                ->where('product_id', $product->id)
+                ->where('date', $dateString)
+                ->first();
+
+            if ($ledger) {
+                return [
+                    'id' => (string) $ledger->id,
+                    'productId' => (string) $ledger->product_id,
+                    'productName' => $product->name,
+                    'date' => $dateString,
+                    'openingStock' => (float) $ledger->opening_stock,
+                    'stockAdded' => (float) $ledger->stock_added,
+                    'stockSold' => (float) $ledger->stock_sold,
+                    'closingStock' => (float) $ledger->closing_stock,
+                ];
+            }
+
+            // No ledger exists - calculate from transactions
+            $calculated = $this->ledgerService->calculateDailyStock($product, $date);
+            return [
+                'productId' => (string) $product->id,
+                'productName' => $product->name,
+                'date' => $dateString,
+            ] + $calculated;
+        })->toArray();
     }
 }

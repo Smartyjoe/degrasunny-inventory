@@ -39,13 +39,14 @@ const DailyStockPage = () => {
     )
   }
 
-  // Merge products with daily stock data
+  // Merge products with daily stock data from backend
+  // Backend now calculates from transactions if no ledger exists
   const stockData = products.map((product) => {
     const dailyStock = dailyStocks?.find((ds) => ds.productId === product.id)
     
     return {
       product,
-      openingStock: dailyStock?.openingStock ?? product.currentStock,
+      openingStock: dailyStock?.openingStock ?? 0,
       stockAdded: dailyStock?.stockAdded ?? 0,
       stockSold: dailyStock?.stockSold ?? 0,
       closingStock: dailyStock?.closingStock ?? product.currentStock,

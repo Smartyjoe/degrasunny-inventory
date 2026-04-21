@@ -69,7 +69,13 @@ class StockLedgerService
             ->where('date', $previousDate)
             ->first();
 
-        return $previousLedger ? $previousLedger->closing_stock : $product->current_stock;
+        if ($previousLedger) {
+            return (float) $previousLedger->closing_stock;
+        }
+
+        // No previous ledger exists - for historical dates this is acceptable as 0
+        // For today, use product's current stock as starting point
+        return (float) $product->current_stock;
     }
 
     /**
@@ -151,5 +157,48 @@ class StockLedgerService
     {
         $expected = $ledger->opening_stock + $ledger->stock_added - $ledger->stock_sold;
         return abs($ledger->closing_stock - $expected) < 0.01; // Float comparison tolerance
+    }
+
+    /**
+     * Get or calculate daily stock from transactions
+     * 
+     * When no ledger exists, this calculates stock values on-the-fly
+     * from StockAddition and Sale records.
+     * 
+     * @param Product $product
+     * @param Carbon $date
+     * @return array{openingStock: float, stockAdded: float, stockSold: float, closingStock: float}
+     */
+    public function calculateDailyStock(Product $product, Carbon $date): array
+    {
+        $dateString = $date->toDateString();
+
+        // Get opening stock from yesterday's closing
+        $openingStock = $this->getPreviousClosingStock($product, $date);
+
+        // Sum stock additions for this date
+        $stockAdded = (float) StockAddition::where('user_id', $product->user_id)
+            ->where('product_id', $product->id)
+            ->whereDate('date', $dateString)
+            ->sum('quantity');
+
+        // Calculate stock sold from sales records
+        $sales = \App\Models\Sale::where('user_id', $product->user_id)
+            ->where('product_id', $product->id)
+            ->whereDate('date', $dateString)
+            ->get();
+
+        $stockSold = (float) $sales->sum(function ($sale) {
+            return (float) ($sale->quantity_in_bags ?? $sale->quantity);
+        });
+
+        $closingStock = $openingStock + $stockAdded - $stockSold;
+
+        return [
+            'openingStock' => $openingStock,
+            'stockAdded' => $stockAdded,
+            'stockSold' => $stockSold,
+            'closingStock' => $closingStock,
+        ];
     }
 }
