@@ -40,7 +40,6 @@ const StockHistoryPage = () => {
     productId: selectedProduct || undefined
   })
   const { data: products } = useProducts({ isActive: true })
-  const updateStock = useUpdateStockAddition()
 
   const filteredAdditions = useMemo(() => {
     if (!stockAdditions) return []
