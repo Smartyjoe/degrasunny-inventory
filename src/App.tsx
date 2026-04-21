@@ -17,6 +17,7 @@ import DailyStockPage from './pages/stock/DailyStockPage'
 import SalesEntryPage from './pages/sales/SalesEntryPage'
 import SalesReportPage from './pages/sales/SalesReportPage'
 import StockAdditionPage from './pages/stock/StockAdditionPage'
+import StockHistoryPage from './pages/stock/StockHistoryPage'
 import ReportsPage from './pages/reports/ReportsPage'
 import SettingsPage from './pages/settings/SettingsPage'
 
@@ -51,6 +52,7 @@ function App() {
           <Route path="/sales" element={<SalesEntryPage />} />
           <Route path="/sales/report" element={<SalesReportPage />} />
           <Route path="/stock-addition" element={<StockAdditionPage />} />
+          <Route path="/stock-history" element={<StockHistoryPage />} />
           <Route path="/reports" element={<ReportsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
